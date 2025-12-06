@@ -70,7 +70,9 @@ exports.triggerCall = async (req, res) => {
         };
         console.log(`[Call Setup] Phone: ${phone}, Message: "${message}"`);
 
-        // Generate audio using OpenAI
+        // OpenAI TTS disabled due to quota limits - using Twilio text-to-speech instead
+        // If you have OpenAI credits, uncomment below:
+        /*
         try {
             console.log(`[Call Setup] Generating audio for ${callKey}...`);
             await ensureReminderAudio(callKey, message);
@@ -78,6 +80,7 @@ exports.triggerCall = async (req, res) => {
         } catch (audioErr) {
             console.error("[Call Setup] Audio generation failed, falling back to text-to-speech:", audioErr);
         }
+        */
 
         // Initiate the call
         const voiceUrl = `${process.env.BASE_URL}/voice?phone=${encodeURIComponent(phone)}&stage=reminder`;
@@ -120,23 +123,31 @@ exports.triggerCall = async (req, res) => {
 exports.handleVoiceWebhook = async (req, res) => {
     console.log("🎤 Voice endpoint hit!");
     console.log("Query:", req.query);
+    console.log("Body:", req.body);
 
     try {
         const VoiceResponse = twilio.twiml.VoiceResponse;
         const response = new VoiceResponse();
 
-        const phone = req.query.phone || req.body.To;
-        const reminder = req.query.reminder || "This is a reminder."; // We might need to pass reminder in query if state is lost, but we use global map.
+        const phone = req.query.phone || req.body.To || req.body.From;
+        
+        if (!phone) {
+            console.error("[Voice] No phone number provided");
+            response.say("Sorry, we could not identify your phone number.");
+            response.hangup();
+            res.type('text/xml');
+            return res.send(response.toString());
+        }
 
         // Retrieve message from global map if available
-        const callKey = phone ? phone.replace(/\D/g, '') : null;
+        const callKey = phone.replace(/\D/g, '');
         const callData = global.callMessages?.[callKey] || {};
         const messageToSay = callData.message || "Hello, this is your health reminder.";
 
         console.log(`[Voice] Generating TwiML for ${phone}. Message: "${messageToSay}"`);
 
         // Try to use OpenAI audio if available, otherwise fallback to text-to-speech
-        const audioEntry = callKey ? getReminderAudioEntry(callKey) : null;
+        const audioEntry = getReminderAudioEntry(callKey);
         const audioUrl = audioEntry ? `${process.env.BASE_URL}/reminder-audio/${callKey}` : null;
 
         if (audioUrl) {
@@ -150,38 +161,56 @@ exports.handleVoiceWebhook = async (req, res) => {
             }, messageToSay);
         }
 
-        // 2. Pause
+        // Pause
         response.pause({ length: 1 });
 
-        // 3. Ask for response
+        // Ask for response
         response.say({
-            voice: 'alice'
+            voice: 'alice',
+            language: 'en-US'
         }, "After the beep, please say YES if you will attend, or NO if you cannot.");
 
-        // 4. Record
+        // Record response - finishOnKey: '' means no keys will finish the recording
         const actionUrl = `${process.env.BASE_URL.replace(/\/$/, '')}/process-recording?phone=${encodeURIComponent(phone)}`;
         response.record({
             action: actionUrl,
+            method: 'POST',
             maxLength: 10,
             playBeep: true,
-            transcribe: false
+            transcribe: false,
+            timeout: 5,
+            finishOnKey: ''  // Empty string = no key will finish recording, only voice
         });
 
-        // 5. Fallback if no input
-        response.say("We did not hear a response. Goodbye.");
+        // Fallback if no input
+        response.say({
+            voice: 'alice'
+        }, "We did not hear a response. Goodbye.");
+        
+        response.hangup();
 
         const twimlString = response.toString();
         console.log("[Voice] Generated TwiML:", twimlString);
 
-        res.set('Content-Type', 'text/xml');
+        res.type('text/xml');
         res.send(twimlString);
 
     } catch (err) {
         console.error("[Voice] Error generating TwiML:", err);
-        const response = new twilio.twiml.VoiceResponse();
-        response.say("Sorry, an error occurred.");
-        res.set('Content-Type', 'text/xml');
-        res.send(response.toString());
+        console.error("[Voice] Stack:", err.stack);
+        
+        try {
+            const response = new twilio.twiml.VoiceResponse();
+            response.say({
+                voice: 'alice'
+            }, "Sorry, an error occurred. Please try again later.");
+            response.hangup();
+            res.type('text/xml');
+            res.send(response.toString());
+        } catch (innerErr) {
+            console.error("[Voice] Failed to send error TwiML:", innerErr);
+            res.status(500).type('text/xml').send('<Response><Say>Error</Say></Response>');
+        }
     }
 };
 
@@ -189,6 +218,10 @@ exports.handleVoiceWebhook = async (req, res) => {
  * Handle Recording Webhook (Process user response)
  */
 exports.handleRecordingWebhook = async (req, res) => {
+    console.log("📼 Recording webhook hit!");
+    console.log("Body:", req.body);
+    console.log("Query:", req.query);
+    
     const recordingUrl = req.body.RecordingUrl;
     const phone = req.query.phone || req.body.From;
     const callKey = phone ? phone.replace(/\D/g, '') : null;
@@ -196,9 +229,36 @@ exports.handleRecordingWebhook = async (req, res) => {
     console.log("Recording URL:", recordingUrl);
     console.log("Phone:", phone);
 
+    // Always return valid TwiML immediately
+    const sendSuccessTwiml = () => {
+        const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="alice">Thank you. Your response has been saved. Take care!</Say>
+  <Hangup/>
+</Response>`;
+        res.type('text/xml');
+        res.send(twiml);
+    };
+
+    const sendErrorTwiml = () => {
+        const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="alice">Thank you for your response.</Say>
+  <Hangup/>
+</Response>`;
+        res.type('text/xml');
+        res.send(twiml);
+    };
+
     try {
-        // Convert audio → text using OpenAI (or mock)
-        const userResponse = await generateAIResponse(recordingUrl);
+        if (!recordingUrl || !phone) {
+            console.error("[Recording] Missing recording URL or phone");
+            return sendErrorTwiml();
+        }
+
+        // Convert audio → text and analyze using OpenAI
+        const aiResult = await generateAIResponse(recordingUrl);
+        console.log("[Recording] AI Result:", aiResult);
 
         // Get patient name from call data
         const callData = global.callMessages?.[callKey] || {};
@@ -211,11 +271,17 @@ exports.handleRecordingWebhook = async (req, res) => {
             const result = await CallResponse.findOneAndUpdate(
                 { callSid: callSid },
                 {
-                    response: userResponse,
-                    recordingUrl: recordingUrl
-                }
+                    response: aiResult.fullResponse || aiResult.transcription || "No response",
+                    confirmationStatus: aiResult.confirmationStatus || 'unclear',
+                    recordingUrl: recordingUrl,
+                    callStatus: 'completed'
+                },
+                { new: true }
             );
-            if (result) updated = true;
+            if (result) {
+                console.log("[Recording] Updated existing call record:", result._id);
+                updated = true;
+            }
         }
 
         if (!updated) {
@@ -223,12 +289,14 @@ exports.handleRecordingWebhook = async (req, res) => {
             const newCall = new CallResponse({
                 phone: phone,
                 patientName: callData.patientName,
-                response: userResponse,
+                response: aiResult.fullResponse || aiResult.transcription || "No response",
+                confirmationStatus: aiResult.confirmationStatus || 'unclear',
                 recordingUrl: recordingUrl,
                 callStatus: "completed",
                 callSid: callSid
             });
             await newCall.save();
+            console.log("[Recording] Created new call record:", newCall._id);
         }
 
         // Clean up the temporary message and audio
@@ -239,31 +307,17 @@ exports.handleRecordingWebhook = async (req, res) => {
             deleteReminderAudioEntry(callKey);
         }
 
-        const twiml = `
-        <Response>
-          <Say>Thank you. Your response has been saved. Take care!</Say>
-          <Hangup/>
-        </Response>
-      `;
+        sendSuccessTwiml();
 
-        res.type("text/xml");
-        res.send(twiml);
     } catch (error) {
         console.error("Error processing recording:", error);
+        console.error("Error stack:", error.stack);
 
         if (callKey) {
             deleteReminderAudioEntry(callKey);
         }
 
-        const twiml = `
-        <Response>
-          <Say>Thank you for your response.</Say>
-          <Hangup/>
-        </Response>
-      `;
-
-        res.type("text/xml");
-        res.send(twiml);
+        sendErrorTwiml();
     }
 };
 

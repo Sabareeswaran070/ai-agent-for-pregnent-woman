@@ -306,29 +306,40 @@ function Dashboard() {
                             <div className="tests-section">
                                 <h4>Upcoming Tests/Vaccinations</h4>
                                 <div className="test-input-row">
-                                    <input
-                                        type="text"
-                                        placeholder="Test name"
-                                        value={newTest.testName}
-                                        onChange={(e) => setNewTest({ ...newTest, testName: e.target.value })}
-                                    />
-                                    <input
-                                        type="date"
-                                        value={newTest.testDate}
-                                        onChange={(e) => setNewTest({ ...newTest, testDate: e.target.value })}
-                                    />
-                                    <select
-                                        value={newTest.testType}
-                                        onChange={(e) => setNewTest({ ...newTest, testType: e.target.value })}
-                                    >
-                                        <option value="lab">Lab Test</option>
-                                        <option value="vaccination">Vaccination</option>
-                                        <option value="checkup">Checkup</option>
-                                        <option value="ultrasound">Ultrasound</option>
-                                    </select>
-                                    <button type="button" className="btn btn-accent" onClick={handleAddTest}>
-                                        Add
-                                    </button>
+                                    <div className="test-input-group">
+                                        <label>Test Name</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g., Blood Test, Ultrasound"
+                                            value={newTest.testName}
+                                            onChange={(e) => setNewTest({ ...newTest, testName: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="test-input-group">
+                                        <label>Test Type</label>
+                                        <select
+                                            value={newTest.testType}
+                                            onChange={(e) => setNewTest({ ...newTest, testType: e.target.value })}
+                                        >
+                                            <option value="lab">Lab Test</option>
+                                            <option value="vaccination">Vaccination</option>
+                                            <option value="checkup">Checkup</option>
+                                            <option value="ultrasound">Ultrasound</option>
+                                        </select>
+                                    </div>
+                                    <div className="test-input-group">
+                                        <label>Test Date</label>
+                                        <input
+                                            type="date"
+                                            value={newTest.testDate}
+                                            onChange={(e) => setNewTest({ ...newTest, testDate: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="test-add-btn-container">
+                                        <button type="button" className="btn btn-accent" onClick={handleAddTest}>
+                                            ➕ Add Test
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {newPatient.upcomingTests.length > 0 && (

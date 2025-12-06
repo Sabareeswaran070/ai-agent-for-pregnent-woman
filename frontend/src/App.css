@@ -2,18 +2,18 @@
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    background: var(--bg-secondary);
 }
 
 /* Navbar Styles */
 .navbar {
-    background: var(--bg-secondary);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding: var(--spacing-md) 0;
+    background: var(--bg-primary);
+    border-bottom: 2px solid var(--border-color);
+    padding: 1rem 0;
     position: sticky;
     top: 0;
     z-index: 100;
-    backdrop-filter: blur(10px);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-sm);
 }
 
 .nav-content {
@@ -30,26 +30,21 @@
 }
 
 .brand-icon {
-    font-size: 2.5rem;
-    animation: pulse 2s ease-in-out infinite;
+    font-size: 2rem;
 }
 
 .nav-brand h1 {
-    font-size: 1.75rem;
-    font-weight: 800;
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
 }
 
 .brand-subtitle {
-    font-size: 0.875rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
-    font-weight: 500;
     padding: 0.25rem 0.75rem;
-    background: rgba(99, 102, 241, 0.1);
-    border-radius: var(--radius-full);
+    background: #e3f2fd;
+    border-radius: 12px;
 }
 
 .nav-links {
@@ -58,43 +53,25 @@
 }
 
 .nav-link {
-    padding: 0.75rem 1.5rem;
+    padding: 0.65rem 1.25rem;
     background: transparent;
     border: none;
     color: var(--text-secondary);
     font-weight: 600;
-    font-size: 1rem;
+    font-size: 0.95rem;
     cursor: pointer;
     border-radius: var(--radius-md);
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.nav-link::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    width: 0;
-    height: 3px;
-    background: var(--gradient-primary);
-    transform: translateX(-50%);
-    transition: width 0.3s ease;
-    border-radius: var(--radius-full);
+    transition: all 0.2s ease;
 }
 
 .nav-link:hover {
-    color: var(--text-primary);
-    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary);
+    background: var(--bg-secondary);
 }
 
 .nav-link.active {
-    color: var(--primary-light);
-    background: rgba(99, 102, 241, 0.15);
-}
-
-.nav-link.active::after {
-    width: 80%;
+    color: white;
+    background: var(--primary);
 }
 
 /* Main Content */
@@ -106,8 +83,8 @@
 
 /* Footer */
 .footer {
-    background: var(--bg-secondary);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-primary);
+    border-top: 2px solid var(--border-color);
     padding: var(--spacing-lg) 0;
     text-align: center;
     color: var(--text-muted);
@@ -136,10 +113,10 @@
     }
 
     .brand-icon {
-        font-size: 2rem;
+        font-size: 1.75rem;
     }
 
     .nav-brand h1 {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
     }
 }

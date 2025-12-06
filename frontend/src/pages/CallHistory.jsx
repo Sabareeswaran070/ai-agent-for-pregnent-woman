@@ -40,26 +40,33 @@ function CallHistory() {
         return <span className={`badge ${statusInfo.class}`}>{statusInfo.text}</span>;
     };
 
-    const getResponseSummary = (response) => {
+    const getResponseSummary = (response, confirmationStatus) => {
         if (!response || response === 'Call initiated') return null;
 
-        // Extract AI analysis if present
-        const parts = response.split('| AI Analysis:');
-        const userResponse = parts[0].trim();
-        const aiAnalysis = parts[1]?.trim();
+        const getConfirmationBadge = (status) => {
+            const statusMap = {
+                'confirmed': { class: 'badge-success', icon: '✅', text: 'Confirmed' },
+                'rejected': { class: 'badge-error', icon: '❌', text: 'Rejected' },
+                'unclear': { class: 'badge-warning', icon: '❓', text: 'Unclear' },
+                'pending': { class: 'badge-info', icon: '⏳', text: 'Pending' }
+            };
+            const info = statusMap[status] || statusMap['pending'];
+            return (
+                <span className={`badge ${info.class}`}>
+                    {info.icon} {info.text}
+                </span>
+            );
+        };
 
         return (
             <div className="response-details">
+                <div className="confirmation-status">
+                    {getConfirmationBadge(confirmationStatus || 'pending')}
+                </div>
                 <div className="user-response">
                     <strong>Patient Response:</strong>
-                    <p>{userResponse}</p>
+                    <p>{response}</p>
                 </div>
-                {aiAnalysis && (
-                    <div className="ai-analysis">
-                        <strong>AI Analysis:</strong>
-                        <p>{aiAnalysis}</p>
-                    </div>
-                )}
             </div>
         );
     };
@@ -187,7 +194,7 @@ function CallHistory() {
                                 </div>
                             </div>
 
-                            {getResponseSummary(call.response)}
+                            {getResponseSummary(call.response, call.confirmationStatus)}
 
                             {call.recordingUrl && (
                                 <div className="recording-section">

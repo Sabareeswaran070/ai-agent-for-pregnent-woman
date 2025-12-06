@@ -13,6 +13,11 @@ const callResponseSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    confirmationStatus: {
+        type: String,
+        enum: ['confirmed', 'rejected', 'unclear', 'pending'],
+        default: 'pending'
+    },
     recordingUrl: {
         type: String,
         required: false

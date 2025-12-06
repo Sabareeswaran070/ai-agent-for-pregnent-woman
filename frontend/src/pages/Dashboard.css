@@ -9,21 +9,21 @@
     margin-bottom: var(--spacing-xl);
     flex-wrap: wrap;
     gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
 }
 
 .page-title {
-    font-size: 2.5rem;
-    font-weight: 800;
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary);
     margin-bottom: var(--spacing-xs);
 }
 
 .page-subtitle {
-    color: var(--text-muted);
-    font-size: 1.1rem;
+    color: var(--text-secondary);
+    font-size: 1rem;
 }
 
 /* Stats Grid */
@@ -35,46 +35,43 @@
 }
 
 .stat-card {
-    background: var(--bg-secondary);
-    border-radius: var(--radius-lg);
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
     padding: var(--spacing-lg);
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    transition: all 0.3s ease;
+    border: 2px solid var(--border-color);
+    transition: all 0.2s ease;
 }
 
 .stat-card:hover {
-    transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
-    border-color: rgba(99, 102, 241, 0.3);
+    border-color: var(--primary);
 }
 
 .stat-icon {
-    font-size: 3rem;
-    width: 80px;
-    height: 80px;
+    font-size: 2.5rem;
+    width: 70px;
+    height: 70px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--gradient-primary);
+    background: var(--primary);
+    color: white;
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-glow);
 }
 
 .stat-content h3 {
-    font-size: 2rem;
-    font-weight: 800;
+    font-size: 1.75rem;
+    font-weight: 700;
     color: var(--text-primary);
     margin-bottom: 0.25rem;
 }
 
 .stat-content p {
-    color: var(--text-muted);
+    color: var(--text-secondary);
     font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 /* Patients Section */
@@ -83,10 +80,14 @@
 }
 
 .section-title {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 700;
     margin-bottom: var(--spacing-md);
     color: var(--text-primary);
+    padding: var(--spacing-sm);
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--primary);
 }
 
 .patients-grid {
@@ -98,16 +99,7 @@
 .patient-card {
     position: relative;
     overflow: hidden;
-}
-
-.patient-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: var(--gradient-primary);
+    border-top: 4px solid var(--primary);
 }
 
 .patient-header {
@@ -121,14 +113,13 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: var(--gradient-secondary);
+    background: var(--primary);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
     font-weight: 700;
     color: white;
-    box-shadow: var(--shadow-md);
 }
 
 .patient-avatar.large {
@@ -147,7 +138,7 @@
 .patient-phone,
 .patient-email {
     font-size: 0.9rem;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     margin-bottom: 0.25rem;
 }
 
@@ -155,18 +146,18 @@
     display: flex;
     justify-content: space-between;
     padding: var(--spacing-sm);
-    background: rgba(99, 102, 241, 0.1);
+    background: #e3f2fd;
     border-radius: var(--radius-sm);
     margin-bottom: var(--spacing-md);
 }
 
 .patient-due-date .label {
-    color: var(--text-muted);
-    font-weight: 500;
+    color: var(--text-secondary);
+    font-weight: 600;
 }
 
 .patient-due-date .value {
-    color: var(--primary-light);
+    color: var(--primary);
     font-weight: 700;
 }
 
@@ -176,10 +167,9 @@
 
 .patient-tests h5 {
     font-size: 0.9rem;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     margin-bottom: var(--spacing-sm);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-weight: 600;
 }
 
 .patient-tests ul {
@@ -191,7 +181,7 @@
     align-items: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-sm);
-    background: var(--bg-tertiary);
+    background: var(--bg-secondary);
     border-radius: var(--radius-sm);
     margin-bottom: var(--spacing-xs);
     font-size: 0.9rem;
@@ -199,7 +189,7 @@
 
 .patient-tests .test-date {
     margin-left: auto;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     font-size: 0.85rem;
 }
 
@@ -218,13 +208,13 @@
 .empty-state {
     text-align: center;
     padding: var(--spacing-xl);
-    background: var(--bg-secondary);
+    background: var(--bg-primary);
     border-radius: var(--radius-lg);
-    border: 2px dashed rgba(255, 255, 255, 0.1);
+    border: 2px dashed var(--border-color);
 }
 
 .empty-icon {
-    font-size: 5rem;
+    font-size: 4rem;
     margin-bottom: var(--spacing-md);
     opacity: 0.5;
 }
@@ -236,7 +226,7 @@
 }
 
 .empty-state p {
-    color: var(--text-muted);
+    color: var(--text-secondary);
     margin-bottom: var(--spacing-lg);
 }
 
@@ -247,8 +237,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(5px);
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -257,15 +246,14 @@
 }
 
 .modal {
-    background: var(--bg-secondary);
+    background: var(--bg-primary);
     border-radius: var(--radius-lg);
-    max-width: 600px;
+    max-width: 700px;
     width: 90%;
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: var(--shadow-lg);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    animation: slideIn 0.3s ease-out;
+    border: 2px solid var(--border-color);
 }
 
 .modal-header {
@@ -273,29 +261,30 @@
     justify-content: space-between;
     align-items: center;
     padding: var(--spacing-lg);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 2px solid var(--border-color);
+    background: var(--bg-secondary);
 }
 
 .modal-header h3 {
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--text-primary);
+    color: var(--primary);
 }
 
 .close-btn {
     background: transparent;
     border: none;
     font-size: 1.5rem;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     cursor: pointer;
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .close-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--bg-tertiary);
     color: var(--text-primary);
 }
 
@@ -307,42 +296,71 @@
     display: flex;
     gap: var(--spacing-sm);
     padding: var(--spacing-lg);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 2px solid var(--border-color);
+    background: var(--bg-secondary);
 }
 
 .modal-actions .btn {
     flex: 1;
 }
 
-/* Tests Section in Modal */
+/* Improved Tests Section in Modal - Better Aligned Form */
 .tests-section {
-    margin-top: var(--spacing-md);
-    padding: var(--spacing-md);
-    background: var(--bg-tertiary);
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background: var(--bg-secondary);
     border-radius: var(--radius-md);
+    border: 2px solid var(--border-color);
 }
 
 .tests-section h4 {
-    font-size: 1rem;
+    font-size: 1.1rem;
     margin-bottom: var(--spacing-md);
-    color: var(--text-secondary);
+    color: var(--text-primary);
+    font-weight: 700;
 }
 
+/* Improved form layout with better alignment */
 .test-input-row {
     display: grid;
-    grid-template-columns: 2fr 1.5fr 1.5fr auto;
-    gap: var(--spacing-sm);
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
     margin-bottom: var(--spacing-md);
+}
+
+.test-input-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.test-input-group label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
 }
 
 .test-input-row input,
 .test-input-row select {
     padding: 0.75rem;
-    background: var(--bg-secondary);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    width: 100%;
+}
+
+.test-input-row input:focus,
+.test-input-row select:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.test-add-btn-container {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
 }
 
 .added-tests {
@@ -354,27 +372,28 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
-    padding: var(--spacing-sm);
-    background: var(--bg-secondary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-primary);
     border-radius: var(--radius-sm);
     margin-bottom: var(--spacing-xs);
+    border: 1px solid var(--border-color);
 }
 
 .added-tests li button {
     margin-left: auto;
     background: transparent;
     border: none;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     cursor: pointer;
     font-size: 1.2rem;
     padding: 0.25rem 0.5rem;
     border-radius: var(--radius-sm);
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .added-tests li button:hover {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    background: #f8d7da;
+    color: #721c24;
 }
 
 /* Call Modal */
@@ -394,7 +413,7 @@
 }
 
 .patient-preview p {
-    color: var(--text-muted);
+    color: var(--text-secondary);
 }
 
 .reminder-preview {
@@ -402,28 +421,27 @@
 }
 
 .reminder-preview h5 {
-    font-size: 0.9rem;
-    color: var(--text-muted);
+    font-size: 0.95rem;
+    color: var(--text-secondary);
     margin-bottom: var(--spacing-sm);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-weight: 600;
 }
 
 .reminder-box {
     padding: var(--spacing-md);
-    background: var(--bg-tertiary);
+    background: var(--bg-secondary);
     border-radius: var(--radius-md);
     border-left: 4px solid var(--primary);
 }
 
 .reminder-box p {
-    color: var(--text-secondary);
+    color: var(--text-primary);
     line-height: 1.8;
     font-style: italic;
 }
 
 .reminder-box strong {
-    color: var(--primary-light);
+    color: var(--primary);
     font-weight: 700;
 }
 
@@ -437,15 +455,15 @@
 }
 
 .call-status.success {
-    background: rgba(16, 185, 129, 0.2);
-    color: var(--accent);
-    border: 1px solid var(--accent);
+    background: #d4edda;
+    color: #155724;
+    border: 2px solid #c3e6cb;
 }
 
 .call-status.error {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-    border: 1px solid #ef4444;
+    background: #f8d7da;
+    color: #721c24;
+    border: 2px solid #f5c6cb;
 }
 
 /* Responsive */
@@ -456,7 +474,7 @@
     }
 
     .page-title {
-        font-size: 2rem;
+        font-size: 1.75rem;
     }
 
     .patients-grid {

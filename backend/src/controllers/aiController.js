@@ -107,12 +107,40 @@ async function transcribeAudio(recordingUrl) {
     try {
         console.log('Downloading audio from:', recordingUrl);
 
-        // Download the audio file
-        const response = await axios({
-            method: 'get',
-            url: recordingUrl,
-            responseType: 'stream'
-        });
+        // Add .mp3 extension to get the audio file
+        const audioUrl = recordingUrl + '.mp3';
+        
+        // Retry logic - recordings take a few seconds to be available
+        let response;
+        let retries = 3;
+        
+        for (let i = 0; i < retries; i++) {
+            try {
+                // Download the audio file with Twilio authentication
+                response = await axios({
+                    method: 'get',
+                    url: audioUrl,
+                    responseType: 'stream',
+                    auth: {
+                        username: process.env.TWILIO_ACCOUNT_SID,
+                        password: process.env.TWILIO_AUTH_TOKEN
+                    }
+                });
+                console.log('Audio downloaded successfully');
+                break; // Success, exit retry loop
+            } catch (err) {
+                if (err.response?.status === 404 && i < retries - 1) {
+                    console.log(`Recording not ready yet, retrying in ${(i + 1) * 2} seconds... (attempt ${i + 1}/${retries})`);
+                    await new Promise(resolve => setTimeout(resolve, (i + 1) * 2000)); // Wait 2, 4 seconds
+                } else {
+                    throw err; // Final failure or different error
+                }
+            }
+        }
+        
+        if (!response) {
+            throw new Error('Failed to download recording after retries');
+        }
 
         // Create a temporary file
         const tempFilePath = path.join(os.tmpdir(), `recording_${Date.now()}.wav`);
@@ -157,7 +185,11 @@ async function generateAIResponse(recordingUrl) {
         const transcribedText = await transcribeAudio(recordingUrl);
 
         if (!transcribedText || transcribedText === 'Unable to transcribe response') {
-            return "Could not understand response";
+            return {
+                fullResponse: "Could not understand response",
+                transcription: "Unable to transcribe",
+                confirmationStatus: "unclear"
+            };
         }
 
         // Analyze the response using GPT
@@ -165,22 +197,39 @@ async function generateAIResponse(recordingUrl) {
             messages: [
                 {
                     role: "system",
-                    content: "You are a medical assistant helper. Analyze the patient's response to an appointment reminder. Determine if they are confirming (YES), cancelling (NO), or asking to reschedule. Return a concise summary like 'CONFIRMED', 'CANCELLED', 'RESCHEDULE_REQUESTED', or 'UNCLEAR' followed by a brief explanation."
+                    content: "You are analyzing a patient's response to an appointment reminder. Reply ONLY with one word: CONFIRMED, REJECTED, or UNCLEAR."
                 },
                 {
                     role: "user",
-                    content: `Patient said: "${transcribedText}"`
+                    content: `Patient said: "${transcribedText}". Did they confirm (yes/will attend) or reject (no/cannot attend)?`
                 }
             ],
             model: "gpt-3.5-turbo",
+            max_tokens: 10
         });
 
-        const aiAnalysis = completion.choices[0].message.content;
-        return `${transcribedText} | AI Analysis: ${aiAnalysis}`;
+        const aiStatus = completion.choices[0].message.content.trim().toUpperCase();
+        let confirmationStatus = 'unclear';
+        
+        if (aiStatus.includes('CONFIRMED')) {
+            confirmationStatus = 'confirmed';
+        } else if (aiStatus.includes('REJECTED')) {
+            confirmationStatus = 'rejected';
+        }
+
+        return {
+            fullResponse: transcribedText,
+            transcription: transcribedText,
+            confirmationStatus: confirmationStatus
+        };
 
     } catch (error) {
         console.error('Error generating AI response:', error);
-        return 'Error processing response';
+        return {
+            fullResponse: 'Error processing response',
+            transcription: 'Error',
+            confirmationStatus: 'unclear'
+        };
     }
 }
 
