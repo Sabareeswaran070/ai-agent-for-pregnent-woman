@@ -26,7 +26,6 @@ function Dashboard() {
         testType: 'lab'
     });
 
-   s
     useEffect(() => {
         fetchPatients();
     }, []);
