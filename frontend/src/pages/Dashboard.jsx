@@ -312,6 +312,7 @@ function Dashboard() {
                                     type="date"
                                     value={newPatient.dueDate}
                                     onChange={(e) => setNewPatient({ ...newPatient, dueDate: e.target.value })}
+                                    min={new Date().toISOString().split('T')[0]}
                                 />
                             </div>
 
@@ -345,6 +346,7 @@ function Dashboard() {
                                             type="date"
                                             value={newTest.testDate}
                                             onChange={(e) => setNewTest({ ...newTest, testDate: e.target.value })}
+                                            min={new Date().toISOString().split('T')[0]}
                                         />
                                     </div>
                                     <div className="test-add-btn-container">
