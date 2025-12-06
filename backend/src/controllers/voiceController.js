@@ -45,6 +45,15 @@ exports.triggerCall = async (req, res) => {
         return res.status(400).json({ status: "error", message: "Phone number is required" });
     }
 
+    // Check if BASE_URL is configured
+    if (!process.env.BASE_URL) {
+        console.error("[Call] BASE_URL not configured in .env file");
+        return res.status(500).json({ 
+            status: "error", 
+            message: "Server configuration error: BASE_URL is not set. Please configure your ngrok URL in the .env file." 
+        });
+    }
+
     // Auto-format Indian numbers if missing country code
     if (!phone.startsWith('+') && phone.length === 10) {
         phone = '+91' + phone;
@@ -83,7 +92,8 @@ exports.triggerCall = async (req, res) => {
         */
 
         // Initiate the call
-        const voiceUrl = `${process.env.BASE_URL}/voice?phone=${encodeURIComponent(phone)}&stage=reminder`;
+        const baseUrl = process.env.BASE_URL.replace(/\/$/, ''); // Remove trailing slash
+        const voiceUrl = `${baseUrl}/voice?phone=${encodeURIComponent(phone)}&stage=reminder`;
         console.log(`[Call] Voice webhook URL: ${voiceUrl}`);
 
         const call = await client.calls.create({
@@ -91,7 +101,7 @@ exports.triggerCall = async (req, res) => {
             method: 'POST',
             to: phone,
             from: process.env.TWILIO_PHONE,
-            statusCallback: `${process.env.BASE_URL}/call-status`,
+            statusCallback: `${baseUrl}/call-status`,
             statusCallbackEvent: ["initiated", "ringing", "answered", "completed"]
         });
 
@@ -113,7 +123,23 @@ exports.triggerCall = async (req, res) => {
 
     } catch (err) {
         console.error("Error triggering call:", err);
-        res.status(500).json({ status: "error", message: err.message });
+        console.error("Error details:", {
+            message: err.message,
+            code: err.code,
+            moreInfo: err.moreInfo
+        });
+        
+        // Provide more user-friendly error messages
+        let errorMessage = err.message;
+        if (err.code === 21211) {
+            errorMessage = "Invalid phone number format. Please check the phone number.";
+        } else if (err.code === 21608) {
+            errorMessage = "The phone number is not a valid mobile number or cannot receive calls.";
+        } else if (err.message.includes('BASE_URL')) {
+            errorMessage = "Server configuration error: Please ensure BASE_URL is set in environment variables.";
+        }
+        
+        res.status(500).json({ status: "error", message: errorMessage });
     }
 };
 
@@ -164,28 +190,23 @@ exports.handleVoiceWebhook = async (req, res) => {
         // Pause
         response.pause({ length: 1 });
 
-        // Ask for response
-        response.say({
+        // Ask for keypress response
+        const gather = response.gather({
+            numDigits: 1,
+            action: `${process.env.BASE_URL.replace(/\/$/, '')}/process-keypress?phone=${encodeURIComponent(phone)}`,
+            method: 'POST',
+            timeout: 10
+        });
+
+        gather.say({
             voice: 'alice',
             language: 'en-US'
-        }, "After the beep, please say YES if you will attend, or NO if you cannot.");
-
-        // Record response - finishOnKey: '' means no keys will finish the recording
-        const actionUrl = `${process.env.BASE_URL.replace(/\/$/, '')}/process-recording?phone=${encodeURIComponent(phone)}`;
-        response.record({
-            action: actionUrl,
-            method: 'POST',
-            maxLength: 10,
-            playBeep: true,
-            transcribe: false,
-            timeout: 5,
-            finishOnKey: ''  // Empty string = no key will finish recording, only voice
-        });
+        }, "Please press 1 to confirm your attendance, or press 2 if you cannot attend.");
 
         // Fallback if no input
         response.say({
             voice: 'alice'
-        }, "We did not hear a response. Goodbye.");
+        }, "We did not receive your response. Goodbye.");
         
         response.hangup();
 
@@ -215,10 +236,103 @@ exports.handleVoiceWebhook = async (req, res) => {
 };
 
 /**
- * Handle Recording Webhook (Process user response)
+ * Handle Keypress Response (Process user confirmation via keypress)
+ */
+exports.handleKeypressWebhook = async (req, res) => {
+    console.log("🔢 Keypress webhook hit!");
+    console.log("Body:", req.body);
+    console.log("Query:", req.query);
+    
+    const digit = req.body.Digits;
+    const phone = req.query.phone || req.body.From;
+    const callSid = req.body.CallSid;
+    const callKey = phone ? phone.replace(/\D/g, '') : null;
+
+    console.log("Digit pressed:", digit);
+    console.log("Phone:", phone);
+
+    // Generate appropriate TwiML response
+    const VoiceResponse = twilio.twiml.VoiceResponse;
+    const response = new VoiceResponse();
+
+    let confirmationStatus = 'unclear';
+    let responseMessage = '';
+
+    if (digit === '1') {
+        confirmationStatus = 'confirmed';
+        responseMessage = 'Thank you for confirming. We look forward to seeing you at your appointment. Take care!';
+    } else if (digit === '2') {
+        confirmationStatus = 'rejected';
+        responseMessage = 'Thank you for letting us know. Please contact us to reschedule your appointment. Take care!';
+    } else {
+        confirmationStatus = 'unclear';
+        responseMessage = 'Invalid response received. Thank you for your time.';
+    }
+
+    response.say({
+        voice: 'alice',
+        language: 'en-US'
+    }, responseMessage);
+    response.hangup();
+
+    // Save to database asynchronously
+    (async () => {
+        try {
+            const callData = global.callMessages?.[callKey] || {};
+            const fullResponse = `User pressed ${digit} - ${confirmationStatus}`;
+
+            let updated = false;
+            if (callSid) {
+                const result = await CallResponse.findOneAndUpdate(
+                    { callSid: callSid },
+                    {
+                        response: fullResponse,
+                        confirmationStatus: confirmationStatus,
+                        callStatus: 'completed'
+                    },
+                    { new: true }
+                );
+                if (result) {
+                    console.log("[Keypress] Updated existing call record:", result._id);
+                    updated = true;
+                }
+            }
+
+            if (!updated) {
+                const newCall = new CallResponse({
+                    phone: phone,
+                    patientName: callData.patientName,
+                    response: fullResponse,
+                    confirmationStatus: confirmationStatus,
+                    callStatus: "completed",
+                    callSid: callSid
+                });
+                await newCall.save();
+                console.log("[Keypress] Created new call record:", newCall._id);
+            }
+
+            // Clean up temporary data
+            if (global.callMessages?.[callKey]) {
+                delete global.callMessages[callKey];
+            }
+            if (callKey) {
+                deleteReminderAudioEntry(callKey);
+            }
+        } catch (error) {
+            console.error("Error saving keypress response:", error);
+        }
+    })();
+
+    // Send TwiML response immediately
+    res.type('text/xml');
+    res.send(response.toString());
+};
+
+/**
+ * Handle Recording Webhook (Legacy - kept for backward compatibility)
  */
 exports.handleRecordingWebhook = async (req, res) => {
-    console.log("📼 Recording webhook hit!");
+    console.log("📼 Recording webhook hit (legacy)!");
     console.log("Body:", req.body);
     console.log("Query:", req.query);
     

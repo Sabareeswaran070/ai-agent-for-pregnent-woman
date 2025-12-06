@@ -155,20 +155,47 @@ async function transcribeAudio(recordingUrl) {
 
         console.log('Audio downloaded to:', tempFilePath);
 
-        // Transcribe using OpenAI Whisper
-        const transcription = await openai.audio.transcriptions.create({
-            file: fs.createReadStream(tempFilePath),
-            model: "whisper-1",
-        });
+        // Transcribe using OpenAI Whisper with retry logic
+        let transcription;
+        let retryCount = 0;
+        const maxRetries = 3;
+
+        while (retryCount < maxRetries) {
+            try {
+                console.log(`[Transcription] Attempt ${retryCount + 1}/${maxRetries}...`);
+                transcription = await openai.audio.transcriptions.create({
+                    file: fs.createReadStream(tempFilePath),
+                    model: "whisper-1",
+                });
+                console.log('[Transcription] Success:', transcription.text);
+                break;
+            } catch (apiError) {
+                retryCount++;
+                console.error(`[Transcription] Attempt ${retryCount} failed:`, apiError.message);
+                
+                if (retryCount < maxRetries) {
+                    // Wait before retrying (exponential backoff)
+                    await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+                } else {
+                    throw apiError;
+                }
+            }
+        }
 
         // Clean up temp file
         fs.unlinkSync(tempFilePath);
 
-        console.log('Transcription result:', transcription.text);
-        return transcription.text;
+        return transcription?.text || 'Unable to transcribe response';
 
     } catch (error) {
-        console.error('Error transcribing audio:', error);
+        console.error('Error transcribing audio:', error.message);
+        console.error('Error type:', error.constructor.name);
+        
+        // Check if it's a network error
+        if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.type === 'system') {
+            console.warn('[Transcription] Network error - OpenAI API may be temporarily unavailable');
+        }
+        
         return 'Unable to transcribe response';
     }
 }
@@ -185,28 +212,51 @@ async function generateAIResponse(recordingUrl) {
         const transcribedText = await transcribeAudio(recordingUrl);
 
         if (!transcribedText || transcribedText === 'Unable to transcribe response') {
+            console.warn('[AI Analysis] Transcription failed, marking as unclear');
             return {
-                fullResponse: "Could not understand response",
+                fullResponse: "Could not understand response (transcription failed)",
                 transcription: "Unable to transcribe",
                 confirmationStatus: "unclear"
             };
         }
 
-        // Analyze the response using GPT
-        const completion = await openai.chat.completions.create({
-            messages: [
-                {
-                    role: "system",
-                    content: "You are analyzing a patient's response to an appointment reminder. Reply ONLY with one word: CONFIRMED, REJECTED, or UNCLEAR."
-                },
-                {
-                    role: "user",
-                    content: `Patient said: "${transcribedText}". Did they confirm (yes/will attend) or reject (no/cannot attend)?`
+        console.log('[AI Analysis] Analyzing transcription:', transcribedText);
+
+        // Analyze the response using GPT with retry logic
+        let completion;
+        let retryCount = 0;
+        const maxRetries = 2;
+
+        while (retryCount < maxRetries) {
+            try {
+                completion = await openai.chat.completions.create({
+                    messages: [
+                        {
+                            role: "system",
+                            content: "You are analyzing a patient's response to an appointment reminder. Reply ONLY with one word: CONFIRMED, REJECTED, or UNCLEAR."
+                        },
+                        {
+                            role: "user",
+                            content: `Patient said: "${transcribedText}". Did they confirm (yes/will attend) or reject (no/cannot attend)?`
+                        }
+                    ],
+                    model: "gpt-3.5-turbo",
+                    max_tokens: 10
+                });
+                break;
+            } catch (apiError) {
+                retryCount++;
+                console.error(`[AI Analysis] Attempt ${retryCount} failed:`, apiError.message);
+                
+                if (retryCount < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+                } else {
+                    // Fallback to simple keyword matching if API fails
+                    console.warn('[AI Analysis] OpenAI API failed, using fallback keyword matching');
+                    return analyzeWithKeywords(transcribedText);
                 }
-            ],
-            model: "gpt-3.5-turbo",
-            max_tokens: 10
-        });
+            }
+        }
 
         const aiStatus = completion.choices[0].message.content.trim().toUpperCase();
         let confirmationStatus = 'unclear';
@@ -217,6 +267,8 @@ async function generateAIResponse(recordingUrl) {
             confirmationStatus = 'rejected';
         }
 
+        console.log('[AI Analysis] Result:', confirmationStatus);
+
         return {
             fullResponse: transcribedText,
             transcription: transcribedText,
@@ -224,13 +276,51 @@ async function generateAIResponse(recordingUrl) {
         };
 
     } catch (error) {
-        console.error('Error generating AI response:', error);
+        console.error('Error generating AI response:', error.message);
+        
+        // Try keyword-based fallback
+        if (transcribedText && transcribedText !== 'Unable to transcribe response') {
+            console.warn('[AI Analysis] Using fallback keyword matching');
+            return analyzeWithKeywords(transcribedText);
+        }
+        
         return {
             fullResponse: 'Error processing response',
             transcription: 'Error',
             confirmationStatus: 'unclear'
         };
     }
+}
+
+/**
+ * Fallback function to analyze response using simple keyword matching
+ * @param {string} text - Transcribed text
+ * @returns {Object} - Analysis result
+ */
+function analyzeWithKeywords(text) {
+    const lowerText = text.toLowerCase();
+    
+    // Check for confirmation keywords
+    const confirmKeywords = ['yes', 'yeah', 'sure', 'okay', 'ok', 'will attend', 'confirm', 'definitely', 'absolutely'];
+    const rejectKeywords = ['no', 'not', 'cannot', 'can\'t', 'won\'t', 'unable', 'busy', 'unavailable'];
+    
+    const hasConfirm = confirmKeywords.some(keyword => lowerText.includes(keyword));
+    const hasReject = rejectKeywords.some(keyword => lowerText.includes(keyword));
+    
+    let status = 'unclear';
+    if (hasConfirm && !hasReject) {
+        status = 'confirmed';
+    } else if (hasReject && !hasConfirm) {
+        status = 'rejected';
+    }
+    
+    console.log(`[Keyword Analysis] Text: "${text}" -> Status: ${status}`);
+    
+    return {
+        fullResponse: text + ' (analyzed with keyword matching)',
+        transcription: text,
+        confirmationStatus: status
+    };
 }
 
 
@@ -270,6 +360,7 @@ module.exports = {
     transcribeAudio,
     generateAIResponse,
     generateReminderMessage,
+    analyzeWithKeywords,
     ensureReminderAudio,
     getReminderAudioEntry,
     deleteReminderAudioEntry

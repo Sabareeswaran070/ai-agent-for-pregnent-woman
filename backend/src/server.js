@@ -145,6 +145,9 @@ app.get("/reminder-audio/:callKey", voiceController.serveReminderAudio);
 // 4️⃣ Process Recording
 app.post("/process-recording", voiceController.handleRecordingWebhook);
 
+// 4️⃣-B Process Keypress (NEW - replaces recording)
+app.post("/process-keypress", voiceController.handleKeypressWebhook);
+
 // 5️⃣ Call Status
 app.post("/call-status", voiceController.handleCallStatusWebhook);
 

@@ -147,12 +147,57 @@ Invoke-RestMethod -Method Post -Uri 'http://localhost:5000/call' -Body '{"phone"
 
 1. **Patient Record**: Add patient details including upcoming tests
 2. **Trigger Call**: System makes automated call via Twilio
-3. **AI Voice**: OpenAI TTS generates natural voice reminder
-4. **Patient Response**: Patient says YES/NO after beep
-5. **Transcription**: OpenAI Whisper transcribes response
-6. **Analysis**: GPT-3.5-turbo analyzes if patient will attend
-7. **Storage**: Response saved to MongoDB
-8. **Dashboard**: View all call history and responses
+3. **AI Voice**: Twilio TTS generates natural voice reminder
+4. **Patient Response**: Patient presses **1 to confirm** or **2 to decline** attendance
+5. **Instant Analysis**: System immediately processes keypress response
+6. **Storage**: Response saved to MongoDB with confirmation status
+7. **Dashboard**: View all call history and responses
+
+### Keypress Options:
+- Press **1**: Confirmed - Patient will attend the appointment
+- Press **2**: Rejected - Patient cannot attend the appointment
+- No response or other keys: Marked as unclear
+
+## 🐛 Troubleshooting
+
+### "Application Error" when clicking Confirm/Initiate Call
+
+**Problem**: When you click the "Initiate Call" button in the dashboard, you get an "Application Error" or "Server configuration error".
+
+**Solution**: This usually means the `BASE_URL` environment variable is not set in your `.env` file.
+
+1. Make sure you have ngrok running:
+   ```bash
+   ngrok http 5000
+   ```
+
+2. Copy the HTTPS URL from ngrok (e.g., `https://abc123.ngrok.io`)
+
+3. Update your `backend/.env` file:
+   ```env
+   BASE_URL=https://abc123.ngrok.io
+   ```
+   **Important**: Do NOT include a trailing slash!
+
+4. Restart your backend server:
+   ```bash
+   cd backend
+   npm start
+   ```
+
+### Other Common Issues
+
+**Issue**: "Cannot connect to server"
+- **Solution**: Ensure the backend is running on `http://localhost:5000`
+
+**Issue**: "Invalid phone number"
+- **Solution**: Make sure phone numbers are in international format (e.g., `+1234567890` or `+911234567890`)
+
+**Issue**: "MongoDB connection error"
+- **Solution**: Check your `MONGO_URI` in the `.env` file and ensure your IP is whitelisted in MongoDB Atlas
+
+**Issue**: "Twilio authentication error"
+- **Solution**: Verify your `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_PHONE` in the `.env` file
 
 ## 📝 License
 

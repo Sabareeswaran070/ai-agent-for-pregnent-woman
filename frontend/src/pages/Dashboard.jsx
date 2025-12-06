@@ -26,7 +26,7 @@ function Dashboard() {
         testType: 'lab'
     });
 
-    // Fetch patients on component mount
+   s
     useEffect(() => {
         fetchPatients();
     }, []);
@@ -103,7 +103,20 @@ function Dashboard() {
             }
         } catch (error) {
             console.error('Error making call:', error);
-            setCallStatus('❌ Error: ' + error.response?.data?.message);
+            
+            // Provide detailed error messages
+            let errorMsg = 'Unknown error occurred';
+            if (error.response?.data?.message) {
+                errorMsg = error.response.data.message;
+            } else if (error.response?.status === 500) {
+                errorMsg = 'Server error. Please check backend configuration.';
+            } else if (error.message === 'Network Error') {
+                errorMsg = 'Cannot connect to server. Please ensure the backend is running.';
+            } else {
+                errorMsg = error.message;
+            }
+            
+            setCallStatus('❌ Error: ' + errorMsg);
         }
         setLoading(false);
     };
