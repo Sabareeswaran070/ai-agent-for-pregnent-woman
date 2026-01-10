@@ -1,0 +1,418 @@
+.scheduled-calls-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.scheduled-header {
+    margin-bottom: 2rem;
+}
+
+.scheduled-header h1 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #6d28d9;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.filter-buttons button {
+    padding: 0.75rem 1.5rem;
+    border: 2px solid #ddd6fe;
+    background: white;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #6d28d9;
+}
+
+.filter-buttons button:hover {
+    background: #faf5ff;
+    border-color: #8b5cf6;
+    transform: translateY(-2px);
+}
+
+.filter-buttons button.active {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    border-color: #8b5cf6;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: linear-gradient(145deg, #ffffff 0%, #faf5ff 100%);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    border: 2px solid #ddd6fe;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.2);
+}
+
+.stat-icon {
+    font-size: 3rem;
+    width: 70px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+    border-radius: 14px;
+}
+
+.stat-info {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 2.25rem;
+    font-weight: 900;
+    color: #6d28d9;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #64748b;
+    font-weight: 600;
+    margin-top: 0.25rem;
+}
+
+.loading {
+    text-align: center;
+    padding: 3rem;
+    font-size: 1.25rem;
+    color: #64748b;
+}
+
+.no-calls {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: linear-gradient(145deg, #ffffff 0%, #f0f9ff 100%);
+    border-radius: 20px;
+    border: 3px dashed #bae6fd;
+}
+
+.no-calls-icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+}
+
+.no-calls h3 {
+    color: #0e7490;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.no-calls p {
+    color: #64748b;
+    font-size: 1rem;
+}
+
+.calls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 1.5rem;
+}
+
+.call-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f0fdfa 100%);
+    border-radius: 20px;
+    padding: 1.75rem;
+    border: 3px solid #99f6e4;
+    box-shadow: 0 6px 20px rgba(20, 184, 166, 0.12);
+    transition: all 0.4s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.call-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+}
+
+.call-card.status-pending::before {
+    background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.call-card.status-completed::before {
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+.call-card.status-failed::before {
+    background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+.call-card.status-cancelled::before {
+    background: linear-gradient(90deg, #64748b 0%, #475569 100%);
+}
+
+.call-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 36px rgba(139, 92, 246, 0.2);
+    border-color: #c4b5fd;
+}
+
+.call-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e0f2fe;
+}
+
+.patient-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.patient-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 900;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.patient-info h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #6d28d9;
+    font-weight: 800;
+}
+
+.patient-info .phone {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.9rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.badge-pending {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+    border: 2px solid #fbbf24;
+}
+
+.badge-progress {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #1e3a8a;
+    border: 2px solid #3b82f6;
+}
+
+.badge-executed, .badge-completed {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #065f46;
+    border: 2px solid #10b981;
+}
+
+.badge-failed {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #991b1b;
+    border: 2px solid #ef4444;
+}
+
+.badge-cancelled {
+    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+    color: #1e293b;
+    border: 2px solid #64748b;
+}
+
+.call-details {
+    margin-bottom: 1.25rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid #f0f9ff;
+}
+
+.detail-row .label {
+    font-weight: 700;
+    color: #475569;
+    font-size: 0.9rem;
+}
+
+.detail-row .value {
+    font-weight: 600;
+    color: #0f766e;
+    font-size: 0.9rem;
+}
+
+.time-until {
+    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin: 0.75rem 0;
+    border: none;
+}
+
+.time-until .countdown {
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: #6d28d9;
+    width: 100%;
+    text-align: center;
+    display: block;
+}
+
+.test-info {
+    background: #faf5ff;
+    padding: 1rem;
+    border-radius: 10px;
+    margin: 0.75rem 0;
+    border-left: 4px solid #8b5cf6;
+}
+
+.custom-message, .error-message, .notes {
+    background: #f8fafc;
+    padding: 0.875rem;
+    border-radius: 8px;
+    margin: 0.75rem 0;
+    border-left: 3px solid #cbd5e1;
+}
+
+.custom-message strong, .error-message strong, .notes strong {
+    color: #475569;
+    font-size: 0.85rem;
+    display: block;
+    margin-bottom: 0.4rem;
+}
+
+.custom-message p, .error-message p, .notes p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.error-message {
+    background: #fef2f2;
+    border-left-color: #ef4444;
+}
+
+.error-message strong {
+    color: #991b1b;
+}
+
+.call-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.call-actions button {
+    flex: 1;
+    padding: 0.75rem 1.25rem;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-cancel {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #991b1b;
+    border: 2px solid #ef4444;
+}
+
+.btn-cancel:hover {
+    background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-retry {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #1e3a8a;
+    border: 2px solid #3b82f6;
+}
+
+.btn-retry:hover {
+    background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.call-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #e0f2fe;
+}
+
+.call-meta small {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .calls-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-buttons {
+        justify-content: center;
+    }
+}

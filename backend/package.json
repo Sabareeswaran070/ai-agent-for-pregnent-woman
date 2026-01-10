@@ -1,22 +1,46 @@
 {
-  "name": "ai-voice-backend",
+  "name": "allobot-backend",
   "version": "1.0.0",
+  "description": "Allobot - AI-powered voice agent for automated pregnancy care reminders and appointment confirmations",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint src/**/*.js"
   },
+  "keywords": [
+    "ai",
+    "voice-agent",
+    "healthcare",
+    "twilio",
+    "pregnancy-care"
+  ],
+  "author": "",
+  "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "twilio": "^4.21.0",
-    "mongoose": "^7.0.0",
+    "@google-cloud/text-to-speech": "^6.4.0",
+    "@vitalets/google-translate-api": "^9.2.1",
+    "axios": "^1.6.0",
     "cors": "^2.8.5",
-    "body-parser": "^1.20.0",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.5.1",
+    "express-validator": "^7.3.1",
+    "google-tts-api": "^2.0.2",
+    "helmet": "^7.2.0",
+    "mongoose": "^7.0.0",
+    "morgan": "^1.10.1",
     "openai": "^4.20.0",
-    "axios": "^1.6.0"
+    "twilio": "^4.21.0",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
+    "eslint": "^8.55.0",
     "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
   }
 }

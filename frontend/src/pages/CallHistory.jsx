@@ -18,7 +18,7 @@ function CallHistory() {
 
     const fetchCallHistory = async () => {
         try {
-            const response = await axios.get(`${API_URL}/call-history`);
+            const response = await axios.get(`${API_URL}/api/calls/history`);
             if (response.data.status === 'success') {
                 setCallHistory(response.data.history);
             }
@@ -26,6 +26,29 @@ function CallHistory() {
             console.error('Error fetching call history:', error);
         }
         setLoading(false);
+    };
+
+    const handleClearAll = async () => {
+        if (!window.confirm('Are you sure you want to delete ALL call history? This cannot be undone.')) return;
+        try {
+            await axios.delete(`${API_URL}/api/calls/history`);
+            await fetchCallHistory();
+        } catch (error) {
+            console.error('Error deleting all call history:', error);
+            alert('Failed to delete call history.');
+        }
+    };
+
+
+    const handleDeleteRecord = async (id) => {
+        if (!window.confirm('Delete this call record?')) return;
+        try {
+            await axios.delete(`${API_URL}/api/calls/history/record/${id}`);
+            await fetchCallHistory();
+        } catch (error) {
+            console.error('Error deleting call record:', error);
+            alert('Failed to delete this record.');
+        }
     };
 
     const getStatusBadge = (status) => {
@@ -90,9 +113,14 @@ function CallHistory() {
                     <h2 className="page-title">Call History</h2>
                     <p className="page-subtitle">Track all automated reminder calls and patient responses</p>
                 </div>
-                <button className="btn btn-primary" onClick={fetchCallHistory}>
-                    🔄 Refresh
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn btn-primary" onClick={fetchCallHistory}>
+                        🔄 Refresh
+                    </button>
+                    <button className="btn btn-outline" onClick={handleClearAll}>
+                        🗑️ Clear All
+                    </button>
+                </div>
             </div>
 
             {/* Stats */}
@@ -191,6 +219,15 @@ function CallHistory() {
                                             minute: '2-digit'
                                         })}
                                     </span>
+                                    {/* Phone-wide delete removed by request */}
+                                    <button
+                                        className="btn btn-outline btn-sm"
+                                        style={{ marginLeft: '8px' }}
+                                        onClick={() => handleDeleteRecord(call._id)}
+                                        title="Delete just this record"
+                                    >
+                                        🗑️ Delete Record
+                                    </button>
                                 </div>
                             </div>
 

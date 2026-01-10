@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './App.css';
 import Dashboard from './pages/Dashboard';
 import CallHistory from './pages/CallHistory';
+import ScheduledCalls from './pages/ScheduledCalls';
 
 function App() {
     const [currentPage, setCurrentPage] = useState('dashboard');
@@ -13,8 +14,8 @@ function App() {
                     <div className="nav-content">
                         <div className="nav-brand">
                             <div className="brand-icon">🤰</div>
-                            <h1>AI Voice Agent</h1>
-                            <span className="brand-subtitle">Pregnancy Care</span>
+                            <h1>Allobot</h1>
+                            <span className="brand-subtitle">Smart Health Assistant for Mothers</span>
                         </div>
                         <div className="nav-links">
                             <button
@@ -22,6 +23,12 @@ function App() {
                                 onClick={() => setCurrentPage('dashboard')}
                             >
                                 📊 Dashboard
+                            </button>
+                            <button
+                                className={`nav-link ${currentPage === 'scheduled' ? 'active' : ''}`}
+                                onClick={() => setCurrentPage('scheduled')}
+                            >
+                                📅 Scheduled Calls
                             </button>
                             <button
                                 className={`nav-link ${currentPage === 'history' ? 'active' : ''}`}
@@ -36,13 +43,15 @@ function App() {
 
             <main className="main-content">
                 <div className="container">
-                    {currentPage === 'dashboard' ? <Dashboard /> : <CallHistory />}
+                    {currentPage === 'dashboard' && <Dashboard />}
+                    {currentPage === 'scheduled' && <ScheduledCalls />}
+                    {currentPage === 'history' && <CallHistory />}
                 </div>
             </main>
 
             <footer className="footer">
                 <div className="container">
-                    <p>© 2025 AI Voice Agent - Automated Health Reminders for Pregnant Women</p>
+                    <p>© 2026 Allobot - AI-Powered Health Reminders for Pregnant Women</p>
                 </div>
             </footer>
         </div>

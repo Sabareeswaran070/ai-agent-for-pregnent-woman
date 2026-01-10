@@ -1,0 +1,20 @@
+.messages-page { padding: 20px; }
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.page-title { margin: 0; }
+.page-subtitle { color: #666; margin-top: 4px; }
+.card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+.input-group { margin-bottom: 12px; }
+.input-group input, .input-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+.actions { display: flex; justify-content: flex-end; }
+.send-status { margin: 8px 0; padding: 8px; border-radius: 8px; }
+.send-status.success { background: #e7f9ef; color: #137c36; }
+.send-status.error { background: #ffecee; color: #9b1c20; }
+.message-list { list-style: none; padding: 0; margin: 0; }
+.message-item { border-bottom: 1px solid #f0f0f0; padding: 10px 0; }
+.message-header { display: flex; gap: 8px; align-items: center; font-size: 14px; color: #555; }
+.status-badge { padding: 2px 8px; border-radius: 999px; font-size: 12px; text-transform: capitalize; }
+.status-badge.status-sent { background: #e7f9ef; color: #137c36; }
+.status-badge.status-queued { background: #fff8e5; color: #8a6d3b; }
+.status-badge.status-failed { background: #ffecee; color: #9b1c20; }
+.message-body { margin-top: 6px; }
+.message-error { margin-top: 6px; color: #9b1c20; font-size: 13px; }

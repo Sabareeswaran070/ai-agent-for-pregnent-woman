@@ -1,6 +1,6 @@
 const OpenAI = require('openai');
 const axios = require('axios');
-
+const googleTTS = require('google-tts-api');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -17,18 +17,109 @@ if (!fs.existsSync(reminderAudioDir)) {
 
 const reminderAudioCache = new Map();
 
-async function createReminderSpeechBuffer(text) {
-    const speech = await openai.audio.speech.create({
-        model: 'tts-1',
-        voice: 'alloy',
-        input: text,
-        response_format: 'mp3'
-    });
-    const arrayBuffer = await speech.arrayBuffer();
-    return Buffer.from(arrayBuffer);
+async function createReminderSpeechBuffer(text, language = 'en') {
+    const isTamil = language === 'ta' || language === 'ta-in' || language === 'tamil';
+    
+    console.log(`[Audio] ========================================`);
+    console.log(`[Audio] Creating speech for ${isTamil ? 'Tamil' : 'English'}`);
+    console.log(`[Audio] - Language: ${language}`);
+    console.log(`[Audio] - Text: "${text}"`);
+    
+    // For Tamil, use FREE gTTS (Google Text-to-Speech)
+    if (isTamil) {
+        console.log(`[Audio] - Using FREE gTTS for Tamil (no API key needed!)`);
+        return await createFreeTamilSpeech(text);
+    }
+    
+    // For English, try OpenAI if available, otherwise use free gTTS
+    if (process.env.OPENAI_API_KEY) {
+        try {
+            console.log(`[Audio] - Using OpenAI TTS for English`);
+            const speech = await openai.audio.speech.create({
+                model: 'tts-1-hd',
+                voice: 'alloy',
+                input: text,
+                response_format: 'mp3',
+                speed: 0.85
+            });
+            const arrayBuffer = await speech.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            console.log(`[Audio] ✓ OpenAI TTS generated ${buffer.length} bytes`);
+            console.log(`[Audio] ========================================`);
+            return buffer;
+        } catch (error) {
+            console.warn(`[Audio] OpenAI failed, falling back to free gTTS:`, error.message);
+        }
+    }
+    
+    // Fallback to free gTTS for English
+    console.log(`[Audio] - Using FREE gTTS for English`);
+    return await createFreeEnglishSpeech(text);
 }
 
-async function ensureReminderAudio(callKey, reminder) {
+// FREE Tamil Text-to-Speech using Google TTS (No API key needed!)
+async function createFreeTamilSpeech(text) {
+    console.log(`[Audio] Generating FREE Tamil speech with Google TTS API...`);
+    
+    try {
+        // Get audio URL from Google TTS
+        const url = googleTTS.getAudioUrl(text, {
+            lang: 'ta',
+            slow: false,
+            host: 'https://translate.google.com'
+        });
+        
+        console.log(`[Audio] Downloading Tamil audio from Google TTS...`);
+        
+        // Download the audio
+        const response = await axios({
+            method: 'get',
+            url: url,
+            responseType: 'arraybuffer'
+        });
+        
+        const buffer = Buffer.from(response.data);
+        console.log(`[Audio] ✓ FREE Tamil TTS generated ${buffer.length} bytes`);
+        console.log(`[Audio] ========================================`);
+        return buffer;
+    } catch (error) {
+        console.error(`[Audio] ✗ Google TTS Tamil failed:`, error.message);
+        throw new Error(`Failed to generate Tamil speech: ${error.message}`);
+    }
+}
+
+// FREE English Text-to-Speech using Google TTS (No API key needed!)
+async function createFreeEnglishSpeech(text) {
+    console.log(`[Audio] Generating FREE English speech with Google TTS API...`);
+    
+    try {
+        // Get audio URL from Google TTS
+        const url = googleTTS.getAudioUrl(text, {
+            lang: 'en',
+            slow: false,
+            host: 'https://translate.google.com'
+        });
+        
+        console.log(`[Audio] Downloading English audio from Google TTS...`);
+        
+        // Download the audio
+        const response = await axios({
+            method: 'get',
+            url: url,
+            responseType: 'arraybuffer'
+        });
+        
+        const buffer = Buffer.from(response.data);
+        console.log(`[Audio] ✓ FREE English TTS generated ${buffer.length} bytes`);
+        console.log(`[Audio] ========================================`);
+        return buffer;
+    } catch (error) {
+        console.error(`[Audio] ✗ Google TTS English failed:`, error.message);
+        throw new Error(`Failed to generate English speech: ${error.message}`);
+    }
+}
+
+async function ensureReminderAudio(callKey, reminder, language = 'en') {
     if (!callKey || !reminder) {
         console.log('[Audio] Missing callKey or reminder, skipping audio generation');
         return null;
@@ -43,10 +134,9 @@ async function ensureReminderAudio(callKey, reminder) {
     }
 
     try {
-        console.log(`[Audio] Generating new audio for ${callKey}`);
+        console.log(`[Audio] Generating new audio for ${callKey} in language: ${language}`);
         console.log(`[Audio] Reminder text: "${reminder}"`);
-
-        const buffer = await createReminderSpeechBuffer(reminder);
+        const buffer = await createReminderSpeechBuffer(reminder, language);
         const filename = `${callKey}_${now}.mp3`;
         const filePath = path.join(reminderAudioDir, filename);
         fs.writeFileSync(filePath, buffer);
@@ -338,6 +428,11 @@ function generateReminderMessage(patient) {
         return `Hello ${patient.name}, this is a reminder about your upcoming health appointment. Please confirm if you will be able to attend.`;
     }
 
+    // Use custom reminder message if available
+    if (testInfo.reminderMessage && testInfo.reminderMessage.trim()) {
+        return `Hello ${patient.name}, ${testInfo.reminderMessage.trim()}`;
+    }
+
     const testDate = new Date(testInfo.testDate).toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'long',
@@ -356,12 +451,60 @@ function generateReminderMessage(patient) {
     return `Hello ${patient.name}, this is a reminder about your ${testInfo.testName} ${testType} scheduled for ${testDate}. Please confirm if you will be able to attend.`;
 }
 
+/**
+ * Generate Tamil reminder message
+ * @param {Object} patient
+ * @returns {string}
+ */
+function generateReminderMessageTamil(patient) {
+    const testInfo = patient.upcomingTests && patient.upcomingTests.length > 0
+        ? patient.upcomingTests[0]
+        : null;
+
+    if (!testInfo) {
+        return `வணக்கம், இது உங்கள் சுகாதார நினைவூட்டல். உங்கள் வரவிருக்கும் மருத்துவ சந்திப்பிற்கு வருகையை உறுதிப்படுத்தவும்.`;
+    }
+
+    // Use custom reminder message if available
+    if (testInfo.reminderMessage && testInfo.reminderMessage.trim()) {
+        return `வணக்கம், ${testInfo.reminderMessage.trim()}`;
+    }
+
+    const testDate = new Date(testInfo.testDate);
+    const day = testDate.getDate();
+    const month = testDate.toLocaleDateString('ta-IN', { month: 'long' });
+    const year = testDate.getFullYear();
+    
+    // Convert test name to Tamil or use Tamil description
+    const testTypeMap = {
+        'lab': 'இரத்த பரிசோதனை',
+        'Lab Test': 'இரத்த பரிசோதனை',
+        'vaccination': 'தடுப்பூசி',
+        'Vaccination': 'தடுப்பூசி',
+        'checkup': 'மருத்துவ பரிசோதனை',
+        'Checkup': 'மருத்துவ பரிசோதனை',
+        'ultrasound': 'அல்ட்ராசவுண்ட் ஸ்கேன்',
+        'Ultrasound': 'அல்ட்ராசவுண்ட் ஸ்கேன்',
+        'Blood Test': 'இரத்த பரிசோதனை',
+        'Urine Test': 'சிறுநீர் பரிசோதனை',
+        'Glucose Test': 'சர்க்கரை பரிசோதனை',
+        'BP Check': 'இரத்த அழுத்த பரிசோதனை'
+    };
+
+    const tamilTestName = testTypeMap[testInfo.testName] || testTypeMap[testInfo.testType] || 'மருத்துவ பரிசோதனை';
+
+    return `வணக்கம், இது உங்கள் சுகாதார நினைவூட்டல். உங்கள் ${tamilTestName} ${month} மாதம் ${day} ஆம் தேதி திட்டமிடப்பட்டுள்ளது. தயவுசெய்து ஒன் அழுத்தி வருகையை உறுதிப்படுத்தவும். நீங்கள் வர முடியாவிட்டால் டூ அழுத்தவும். நன்றி.`;
+}
+
 module.exports = {
     transcribeAudio,
     generateAIResponse,
     generateReminderMessage,
+    generateReminderMessageTamil,
     analyzeWithKeywords,
     ensureReminderAudio,
     getReminderAudioEntry,
-    deleteReminderAudioEntry
+    deleteReminderAudioEntry,
+    createFreeTamilSpeech,
+    createFreeEnglishSpeech
 };

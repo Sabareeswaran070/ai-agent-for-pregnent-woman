@@ -1,67 +1,158 @@
-// ---------------------------
-// IMPORTS
-// ---------------------------
-const fs = require("fs");
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, '..', '.env') });
+
+// Import utilities and configuration
+const { validateEnv, getConfig } = require("./utils/config");
+const logger = require("./utils/logger");
+
+// Validate environment variables before starting
+validateEnv();
+const config = getConfig();
+
 const express = require("express");
-const bodyParser = require("body-parser");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const morgan = require("morgan");
 const cors = require("cors");
-const voiceController = require("./controllers/voiceController");
 const mongoose = require("mongoose");
-const Patient = require("./models/Patient");
 
-// ---------------------------
+// Import middleware
+const { errorHandler, notFoundHandler } = require("./middleware/errorHandler");
+
+// Import routes
+const patientRoutes = require("./routes/patientRoutes");
+const callRoutes = require("./routes/callRoutes");
+
 // INITIAL SETUP
-// ---------------------------
 const app = express();
-app.use(cors());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
 
-// ---------------------------
-// MONGODB CONNECTION
-// ---------------------------
-mongoose
-    .connect(process.env.MONGO_URI)
-    .then(() => {
-        console.log("✅ MongoDB Connected Successfully");
-        console.log("📊 Database: MongoDB Atlas");
-    })
-    .catch((err) => {
-        console.error("❌ MongoDB Connection Error:", err.message);
-        console.error("⚠️  Please check your MONGO_URI in .env file");
-        process.exit(1);
+// Security middleware
+app.use(helmet({
+    contentSecurityPolicy: false, // Disable for Twilio webhooks
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use('/api/', limiter);
+
+// CORS configuration
+app.use(cors({
+    origin: process.env.FRONTEND_URL || '*',
+    credentials: true
+}));
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// HTTP request logging
+if (config.nodeEnv === 'development') {
+    app.use(morgan('dev'));
+} else {
+    app.use(morgan('combined', { stream: logger.stream }));
+}
+
+// Request logging middleware
+app.use((req, res, next) => {
+    logger.info(`${req.method} ${req.path}`, {
+        ip: req.ip,
+        userAgent: req.get('user-agent')
     });
-
-
-
-
-// ----------------------------------------------------------
-// 🏥 PATIENT MANAGEMENT ENDPOINTS
-// ----------------------------------------------------------
-
-// Create new patient
-app.post("/patients", async (req, res) => {
-    try {
-        const newPatient = new Patient(req.body);
-        await newPatient.save();
-        console.log("Patient added:", newPatient.name);
-        res.json({ status: "success", patient: newPatient });
-    } catch (err) {
-        console.error("Error creating patient:", err);
-        res.status(400).json({ status: "error", message: err.message });
-    }
+    next();
 });
 
+// MONGODB CONNECTION (skipped in mock/dev mode if no URI)
+if (config.mongoUri) {
+    mongoose
+        .connect(config.mongoUri)
+        .then(() => {
+            logger.info("✅ MongoDB Connected Successfully");
+            logger.info("📊 Database: MongoDB Atlas");
+        })
+        .catch((err) => {
+            logger.error("❌ MongoDB Connection Error:", err.message);
+            if (!config.allowMocks) {
+                process.exit(1);
+            } else {
+                logger.warn("⚠️  Continuing in mock mode without database connection");
+            }
+        });
+} else {
+    logger.warn("⚠️  No MONGO_URI provided. Running without database (mock mode). Data will not persist.");
+}
+
+// Database connection event handlers
+mongoose.connection.on('disconnected', () => {
+    logger.warn('MongoDB disconnected');
+});
+
+mongoose.connection.on('reconnected', () => {
+    logger.info('MongoDB reconnected');
+});
+
+// ----------------------------------------------------------
+// API ROUTES
+// ----------------------------------------------------------
+
+// Health check endpoint
+app.get("/", (req, res) => {
+    res.json({
+        status: "running",
+        service: "Allobot - AI Voice Agent API for Pregnant Women",
+        version: "1.0.0",
+        environment: config.nodeEnv,
+        database: "MongoDB Atlas",
+        endpoints: {
+            patients: "/api/patients",
+            calls: "/api/calls",
+            callHistory: "/api/calls/history",
+            health: "/health"
+        },
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Health check for monitoring
+app.get("/health", (req, res) => {
+    const healthCheck = {
+        status: "healthy",
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    };
+    res.json(healthCheck);
+});
+
+// API routes
+app.use("/api/patients", patientRoutes);
+app.use("/api/calls", callRoutes);
+// SMS is now patient-scoped; no generic messages routes
+
+// Legacy routes for backward compatibility with Twilio webhooks
+const voiceController = require("./controllers/voiceController");
+app.post("/call", voiceController.triggerCall);
+app.post("/voice", voiceController.handleVoiceWebhook);
+app.get("/voice", voiceController.handleVoiceWebhook);
+app.get("/reminder-audio/:callKey", voiceController.serveReminderAudio);
+app.post("/process-recording", voiceController.handleRecordingWebhook);
+app.post("/process-keypress", voiceController.handleKeypressWebhook);
+app.post("/call-status", voiceController.handleCallStatusWebhook);
+app.get("/call-history", voiceController.getCallHistory);
+app.get("/call-history/:phone", voiceController.getPatientCallHistory);
+
+// Patients endpoint for backward compatibility
+const Patient = require("./models/Patient");
 const CallResponse = require("./models/CallResponse");
 
-// Get all patients
 app.get("/patients", async (req, res) => {
     try {
         const patients = await Patient.find().sort({ createdAt: -1 });
-
-        // Fetch latest call for each patient
         const patientsWithCallInfo = await Promise.all(patients.map(async (p) => {
             const lastCall = await CallResponse.findOne({ phone: p.phone }).sort({ timestamp: -1 });
             return {
@@ -73,112 +164,81 @@ app.get("/patients", async (req, res) => {
                 } : null
             };
         }));
-
         res.json({ status: "success", patients: patientsWithCallInfo });
     } catch (err) {
-        console.error("Error fetching patients:", err);
+        logger.error("Error fetching patients:", err);
         res.status(500).json({ status: "error", message: err.message });
     }
 });
 
-// Get single patient
-app.get("/patients/:id", async (req, res) => {
+app.post("/patients", async (req, res) => {
     try {
-        const patient = await Patient.findById(req.params.id);
-        if (!patient) {
-            return res.status(404).json({ status: "error", message: "Patient not found" });
-        }
-        res.json({ status: "success", patient });
+        const newPatient = new Patient(req.body);
+        await newPatient.save();
+        logger.info("Patient added:", newPatient.name);
+        res.json({ status: "success", patient: newPatient });
     } catch (err) {
-        console.error("Error fetching patient:", err);
-        res.status(500).json({ status: "error", message: err.message });
-    }
-});
-
-// Update patient
-app.put("/patients/:id", async (req, res) => {
-    try {
-        const patient = await Patient.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true, runValidators: true }
-        );
-        if (!patient) {
-            return res.status(404).json({ status: "error", message: "Patient not found" });
-        }
-        res.json({ status: "success", patient });
-    } catch (err) {
-        console.error("Error updating patient:", err);
+        logger.error("Error creating patient:", err);
         res.status(400).json({ status: "error", message: err.message });
     }
 });
 
-// Delete patient
-app.delete("/patients/:id", async (req, res) => {
-    try {
-        const patient = await Patient.findByIdAndDelete(req.params.id);
-        if (!patient) {
-            return res.status(404).json({ status: "error", message: "Patient not found" });
-        }
-        res.json({ status: "success", message: "Patient deleted" });
-    } catch (err) {
-        console.error("Error deleting patient:", err);
-        res.status(500).json({ status: "error", message: err.message });
-    }
-});
+// 404 handler - must be after all routes
+app.use(notFoundHandler);
 
-
-// ----------------------------------------------------------
-// 📞 CALL MANAGEMENT ENDPOINTS
-// ----------------------------------------------------------
-
-// 1️⃣ Trigger call
-app.post("/call", voiceController.triggerCall);
-
-// 2️⃣ Voice Webhook
-app.post("/voice", voiceController.handleVoiceWebhook);
-app.get("/voice", voiceController.handleVoiceWebhook);
-
-// 3️⃣ Serve Audio
-app.get("/reminder-audio/:callKey", voiceController.serveReminderAudio);
-
-// 4️⃣ Process Recording
-app.post("/process-recording", voiceController.handleRecordingWebhook);
-
-// 4️⃣-B Process Keypress (NEW - replaces recording)
-app.post("/process-keypress", voiceController.handleKeypressWebhook);
-
-// 5️⃣ Call Status
-app.post("/call-status", voiceController.handleCallStatusWebhook);
-
-// 6️⃣ Call History
-app.get("/call-history", voiceController.getCallHistory);
-app.get("/call-history/:phone", voiceController.getPatientCallHistory);
-
-
-// ----------------------------------------------------------
-// 🏠 HEALTH CHECK
-// ----------------------------------------------------------
-app.get("/", (req, res) => {
-    res.json({
-        status: "running",
-        message: "AI Voice Agent API for Pregnant Women",
-        database: "MongoDB Atlas",
-        endpoints: {
-            patients: "/patients",
-            call: "/call",
-            callHistory: "/call-history"
-        }
-    });
-});
-
+// Global error handler - must be last
+app.use(errorHandler);
 
 // ----------------------------------------------------------
 // START SERVER
 // ----------------------------------------------------------
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(` Make sure to set BASE_URL in .env to your ngrok URL`);
-    console.log(`Database: MongoDB Atlas - All data will persist`);
+const server = app.listen(config.port, () => {
+    logger.info(`🚀 Server running on port ${config.port}`);
+    logger.info(`📝 Environment: ${config.nodeEnv}`);
+    logger.info(`🌐 BASE_URL: ${config.baseUrl}`);
+    logger.info(`📊 Database: MongoDB Atlas`);
+    logger.info(`📞 Twilio Phone: ${config.twilio.phone}`);
+    logger.info(`✅ All systems operational`);
+    
+    if (!config.baseUrl || config.baseUrl === 'your_ngrok_url') {
+        logger.warn('⚠️  BASE_URL not properly configured. Please set it in .env file with your ngrok URL');
+    }
 });
+
+// Graceful shutdown
+const gracefulShutdown = (signal) => {
+    logger.info(`\n${signal} signal received: closing HTTP server gracefully`);
+    
+    server.close(() => {
+        logger.info('HTTP server closed');
+        
+        // Close database connection
+        mongoose.connection.close(false, () => {
+            logger.info('MongoDB connection closed');
+            process.exit(0);
+        });
+    });
+    
+    // Force shutdown after 10 seconds
+    setTimeout(() => {
+        logger.error('Forced shutdown due to timeout');
+        process.exit(1);
+    }, 10000);
+};
+
+// Listen for termination signals
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+    logger.error('Uncaught Exception:', error);
+    gracefulShutdown('UNCAUGHT_EXCEPTION');
+});
+
+module.exports = app;
