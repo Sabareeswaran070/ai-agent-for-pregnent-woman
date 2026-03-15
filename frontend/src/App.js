@@ -28,13 +28,13 @@ function App() {
                                 className={`nav-link ${currentPage === 'scheduled' ? 'active' : ''}`}
                                 onClick={() => setCurrentPage('scheduled')}
                             >
-                                📅 Scheduled Calls
+                                📞 Scheduled Calls
                             </button>
                             <button
                                 className={`nav-link ${currentPage === 'history' ? 'active' : ''}`}
                                 onClick={() => setCurrentPage('history')}
                             >
-                                📞 Call History
+                                📋 Call History
                             </button>
                         </div>
                     </div>

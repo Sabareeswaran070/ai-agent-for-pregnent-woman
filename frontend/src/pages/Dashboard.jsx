@@ -850,6 +850,11 @@ function Dashboard() {
                                     <div className="custom-message-preview">
                                         <span className="preview-label">⚡ Will be used:</span>
                                         <span className="preview-text">"{customCallMessage.trim()}"</span>
+                                        {selectedLanguage === 'ta' && (
+                                            <span className="translation-note">
+                                                🌐 Will be auto-translated to Tamil
+                                            </span>
+                                        )}
                                     </div>
                                 )}
                             </div>

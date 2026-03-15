@@ -24,14 +24,10 @@ async function createReminderSpeechBuffer(text, language = 'en') {
     console.log(`[Audio] Creating speech for ${isTamil ? 'Tamil' : 'English'}`);
     console.log(`[Audio] - Language: ${language}`);
     console.log(`[Audio] - Text: "${text}"`);
-    
-    // For Tamil, use FREE gTTS (Google Text-to-Speech)
     if (isTamil) {
         console.log(`[Audio] - Using FREE gTTS for Tamil (no API key needed!)`);
         return await createFreeTamilSpeech(text);
     }
-    
-    // For English, try OpenAI if available, otherwise use free gTTS
     if (process.env.OPENAI_API_KEY) {
         try {
             console.log(`[Audio] - Using OpenAI TTS for English`);
@@ -60,28 +56,85 @@ async function createReminderSpeechBuffer(text, language = 'en') {
 // FREE Tamil Text-to-Speech using Google TTS (No API key needed!)
 async function createFreeTamilSpeech(text) {
     console.log(`[Audio] Generating FREE Tamil speech with Google TTS API...`);
+    console.log(`[Audio] Text length: ${text.length} characters`);
     
     try {
-        // Get audio URL from Google TTS
-        const url = googleTTS.getAudioUrl(text, {
-            lang: 'ta',
-            slow: false,
-            host: 'https://translate.google.com'
-        });
+        // Google TTS has a limit of ~200 characters per request
+        // Split long text into chunks if needed
+        const MAX_CHARS = 180;
         
-        console.log(`[Audio] Downloading Tamil audio from Google TTS...`);
-        
-        // Download the audio
-        const response = await axios({
-            method: 'get',
-            url: url,
-            responseType: 'arraybuffer'
-        });
-        
-        const buffer = Buffer.from(response.data);
-        console.log(`[Audio] ✓ FREE Tamil TTS generated ${buffer.length} bytes`);
-        console.log(`[Audio] ========================================`);
-        return buffer;
+        if (text.length <= MAX_CHARS) {
+            // Short text - single request
+            const url = googleTTS.getAudioUrl(text, {
+                lang: 'ta',
+                slow: false,
+                host: 'https://translate.google.com'
+            });
+            
+            console.log(`[Audio] Downloading Tamil audio from Google TTS...`);
+            
+            const response = await axios({
+                method: 'get',
+                url: url,
+                responseType: 'arraybuffer'
+            });
+            
+            const buffer = Buffer.from(response.data);
+            console.log(`[Audio] ✓ FREE Tamil TTS generated ${buffer.length} bytes`);
+            console.log(`[Audio] ========================================`);
+            return buffer;
+        } else {
+            // Long text - split into sentences and combine audio
+            console.log(`[Audio] Text is long (${text.length} chars), splitting into chunks...`);
+            
+            // Split by Tamil sentence markers (period, question mark, etc.)
+            const sentences = text.split(/([.!?।।।])/g).filter(s => s.trim());
+            const chunks = [];
+            let currentChunk = '';
+            
+            for (const sentence of sentences) {
+                if ((currentChunk + sentence).length <= MAX_CHARS) {
+                    currentChunk += sentence;
+                } else {
+                    if (currentChunk) chunks.push(currentChunk);
+                    currentChunk = sentence;
+                }
+            }
+            if (currentChunk) chunks.push(currentChunk);
+            
+            console.log(`[Audio] Split into ${chunks.length} chunks`);
+            
+            // Generate audio for each chunk
+            const audioBuffers = [];
+            for (let i = 0; i < chunks.length; i++) {
+                console.log(`[Audio] Generating chunk ${i + 1}/${chunks.length}: "${chunks[i].substring(0, 50)}..."`);
+                
+                const url = googleTTS.getAudioUrl(chunks[i], {
+                    lang: 'ta',
+                    slow: false,
+                    host: 'https://translate.google.com'
+                });
+                
+                const response = await axios({
+                    method: 'get',
+                    url: url,
+                    responseType: 'arraybuffer'
+                });
+                
+                audioBuffers.push(Buffer.from(response.data));
+                
+                // Small delay to avoid rate limiting
+                if (i < chunks.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                }
+            }
+            
+            // Concatenate all audio buffers
+            const combinedBuffer = Buffer.concat(audioBuffers);
+            console.log(`[Audio] ✓ FREE Tamil TTS generated ${combinedBuffer.length} bytes (${chunks.length} chunks combined)`);
+            console.log(`[Audio] ========================================`);
+            return combinedBuffer;
+        }
     } catch (error) {
         console.error(`[Audio] ✗ Google TTS Tamil failed:`, error.message);
         throw new Error(`Failed to generate Tamil speech: ${error.message}`);

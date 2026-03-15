@@ -1,5 +1,6 @@
 const twilio = require("twilio");
 const { translate } = require("@vitalets/google-translate-api");
+const OpenAI = require('openai');
 const CallResponse = require("../models/CallResponse");
 const Patient = require("../models/Patient");
 const ScheduledCall = require("../models/ScheduledCall");
@@ -91,19 +92,79 @@ exports.triggerCall = async (req, res) => {
             // AUTO-TRANSLATE to Tamil if Tamil language is selected
             const lang = (language || process.env.DEFAULT_LANGUAGE || '').toLowerCase();
             if (lang === 'ta' || lang === 'ta-in' || lang === 'tamil') {
+                console.log('[Call] ========================================');
                 console.log('[Call] Tamil language selected - translating custom message...');
-                console.log('[Call] Original message:', message);
+                console.log('[Call] Original English message:', message);
+                console.log('[Call] Message length:', message.length, 'characters');
                 
+                let translationSuccess = false;
+                
+                // Try Google Translate first
                 try {
-                    const translated = await translate(message, { to: 'ta' });
-                    message = translated.text;
-                    console.log('[Call] ✓ Translated to Tamil:', message);
+                    console.log('[Call] Attempting Google Translate...');
+                    const translated = await translate(message, { 
+                        to: 'ta',
+                        fetchOptions: {
+                            headers: {
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                            }
+                        }
+                    });
+                    
+                    if (translated && translated.text && translated.text.trim()) {
+                        message = translated.text.trim();
+                        translationSuccess = true;
+                        console.log('[Call] ✓ GOOGLE TRANSLATE SUCCESS!');
+                        console.log('[Call] Translated Tamil message:', message);
+                        console.log('[Call] Tamil message length:', message.length, 'characters');
+                    }
                 } catch (translateErr) {
-                    console.warn('[Call] ⚠ Translation failed, using original message:', translateErr.message);
+                    console.error('[Call] ✗ Google Translate failed:', translateErr.message);
+                    
+                    // Try OpenAI as fallback if available
+                    if (process.env.OPENAI_API_KEY) {
+                        try {
+                            console.log('[Call] Trying OpenAI translation as fallback...');
+                            const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+                            
+                            const completion = await openai.chat.completions.create({
+                                model: "gpt-3.5-turbo",
+                                messages: [
+                                    {
+                                        role: "system",
+                                        content: "You are a professional Tamil translator. Translate the given English text to Tamil accurately. Return ONLY the Tamil translation, nothing else."
+                                    },
+                                    {
+                                        role: "user",
+                                        content: message
+                                    }
+                                ],
+                                temperature: 0.3
+                            });
+                            
+                            const tamilText = completion.choices[0].message.content.trim();
+                            if (tamilText) {
+                                message = tamilText;
+                                translationSuccess = true;
+                                console.log('[Call] ✓ OPENAI TRANSLATION SUCCESS!');
+                                console.log('[Call] Translated Tamil message:', message);
+                            }
+                        } catch (openaiErr) {
+                            console.error('[Call] ✗ OpenAI translation also failed:', openaiErr.message);
+                        }
+                    }
                 }
+                
+                if (!translationSuccess) {
+                    console.error('[Call] ✗ ALL TRANSLATION METHODS FAILED');
+                    console.warn('[Call] ⚠ Using original English message');
+                    console.warn('[Call] ⚠ Consider checking internet connection or API keys');
+                }
+                console.log('[Call] ========================================');
             }
             
-            console.log('[Call] Using CUSTOM message (overrides all defaults):', message);
+            console.log('[Call] Final message to use:', message);
+            console.log('[Call] Message type:', useCustomMessage ? 'CUSTOM' : 'GENERATED');
         }
 
         if (patientId) {
@@ -167,10 +228,13 @@ exports.triggerCall = async (req, res) => {
         
         console.log('='.repeat(80));
         console.log(`[Call Setup] Phone: ${phone}`);
+        console.log(`[Call Setup] Call Key: ${callKey}`);
         console.log(`[Call Setup] Custom Message Provided: ${customMessage ? 'YES ✓' : 'NO ✗'}`);
         console.log(`[Call Setup] Message Source: ${useCustomMessage ? 'CUSTOM (User Input)' : 'GENERATED (Default/Test)'}`);
+        console.log(`[Call Setup] Selected Language: ${language}`);
+        console.log(`[Call Setup] Final Message Length: ${message.length} characters`);
         console.log(`[Call Setup] Final Message to be spoken: "${message}"`);
-        console.log(`[Call Setup] Stored in callMessages[${callKey}]`);
+        console.log(`[Call Setup] Stored in callMessages[${callKey}]:`, global.callMessages[callKey]);
         console.log('='.repeat(80));
 
         // Pre-generate audio (Tamil/English) for playback via Twilio <Play>
@@ -296,8 +360,10 @@ exports.handleVoiceWebhook = async (req, res) => {
         console.log(`[Voice] Processing call for ${phone}`);
         console.log(`[Voice] Call Key: ${callKey}`);
         console.log(`[Voice] Language Preference: ${langPref}`);
+        console.log(`[Voice] Is Tamil: ${langPref === 'ta' || langPref === 'ta-in' || langPref === 'tamil'}`);
+        console.log(`[Voice] Message Length: ${messageToSay.length} characters`);
         console.log(`[Voice] Message to Say: "${messageToSay}"`);
-        console.log(`[Voice] Call Data:`, callData);
+        console.log(`[Voice] Full Call Data:`, callData);
         console.log('========================================');
 
         // Try to use OpenAI audio if available, otherwise fallback to text-to-speech
@@ -350,7 +416,7 @@ exports.handleVoiceWebhook = async (req, res) => {
                 console.log(`[Voice] ✓ Tamil prompt audio generated: ${audioBuffer.length} bytes`);
                 
                 // Save to temp file
-                const tempDir = path.join(os.tmpdir(), 'reminder-audio');
+                const tempDir = path.join(os.tmpdir(), 'ai-reminder-audio');
                 if (!fs.existsSync(tempDir)) {
                     fs.mkdirSync(tempDir, { recursive: true });
                 }
@@ -384,7 +450,7 @@ exports.handleVoiceWebhook = async (req, res) => {
                 const audioBuffer = await createFreeTamilSpeech(goodbyeMessage);
                 console.log(`[Voice] ✓ Tamil goodbye audio generated: ${audioBuffer.length} bytes`);
                 
-                const tempDir = path.join(os.tmpdir(), 'reminder-audio');
+                const tempDir = path.join(os.tmpdir(), 'ai-reminder-audio');
                 if (!fs.existsSync(tempDir)) {
                     fs.mkdirSync(tempDir, { recursive: true });
                 }
@@ -486,7 +552,7 @@ exports.handleKeypressWebhook = async (req, res) => {
             const audioBuffer = await createFreeTamilSpeech(responseMessage);
             console.log(`[Keypress] ✓ Tamil response audio generated: ${audioBuffer.length} bytes`);
             
-            const tempDir = path.join(os.tmpdir(), 'reminder-audio');
+            const tempDir = path.join(os.tmpdir(), 'ai-reminder-audio');
             if (!fs.existsSync(tempDir)) {
                 fs.mkdirSync(tempDir, { recursive: true });
             }
@@ -766,15 +832,43 @@ exports.deleteCallHistoryRecord = async (req, res) => {
  * Serve Reminder Audio File
  */
 exports.serveReminderAudio = (req, res) => {
-    const entry = getReminderAudioEntry(req.params.callKey);
-    if (!entry) {
+    try {
+        const filename = req.params.callKey;
+        
+        // First try to get from cache
+        const entry = getReminderAudioEntry(filename);
+        if (entry && fs.existsSync(entry.path)) {
+            res.set({
+                "Content-Type": "audio/mpeg",
+                "Cache-Control": "no-cache"
+            });
+            return res.sendFile(entry.path);
+        }
+        
+        // If not in cache, try to find the file directly in temp directory
+        // This handles Tamil prompt/goodbye/response files that aren't cached
+        const tempDir = path.join(os.tmpdir(), 'ai-reminder-audio');
+        const filePath = path.join(tempDir, filename);
+        
+        if (fs.existsSync(filePath)) {
+            console.log(`[Audio] Serving file from temp: ${filename}`);
+            res.set({
+                "Content-Type": "audio/mpeg",
+                "Cache-Control": "no-cache"
+            });
+            return res.sendFile(filePath);
+        }
+        
+        // File not found
+        console.error(`[Audio] ✗ File not found: ${filename}`);
+        console.error(`[Audio] ✗ Searched in cache and temp directory: ${tempDir}`);
         return res.status(404).send("Audio not ready");
+        
+    } catch (error) {
+        console.error('[Audio] ✗ Error serving audio:', error);
+        console.error('[Audio] ✗ Error details:', error.message);
+        return res.status(500).send("Error serving audio");
     }
-    res.set({
-        "Content-Type": "audio/mpeg",
-        "Cache-Control": "no-cache"
-    });
-    res.sendFile(entry.path);
 };
 
 /**
