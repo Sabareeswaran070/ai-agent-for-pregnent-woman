@@ -220,11 +220,16 @@ exports.triggerCall = async (req, res) => {
 
         // Store message in a temporary map for the voice endpoint to access
         const callKey = phone.replace(/\D/g, '');
+        const normalizedLanguage = (language || process.env.DEFAULT_LANGUAGE || 'en').toLowerCase().trim();
+        
         global.callMessages[callKey] = {
             message: message,
             patientName: patient ? patient.name : null,
-            language: (language || process.env.DEFAULT_LANGUAGE || '').toLowerCase()
+            language: normalizedLanguage
         };
+        
+        console.log(`[Call] 📝 Stored language for call: "${normalizedLanguage}"`);
+        console.log(`[Call] 📝 Is Tamil: ${normalizedLanguage === 'ta' || normalizedLanguage === 'ta-in' || normalizedLanguage === 'tamil' ? 'YES ✓' : 'NO ✗'}`);
         
         console.log('='.repeat(80));
         console.log(`[Call Setup] Phone: ${phone}`);
@@ -354,16 +359,21 @@ exports.handleVoiceWebhook = async (req, res) => {
         const callKey = phone.replace(/\D/g, '');
         const callData = global.callMessages?.[callKey] || {};
         const messageToSay = callData.message || "Hello, this is your health reminder.";
-        const langPref = (callData.language || req.query.lang || process.env.DEFAULT_LANGUAGE || '').toLowerCase();
+        
+        // NORMALIZE LANGUAGE: Ensure Tamil is properly detected
+        let rawLang = callData.language || req.query.lang || process.env.DEFAULT_LANGUAGE || 'en';
+        const langPref = rawLang.toLowerCase().trim();
+        const isTamil = langPref === 'ta' || langPref === 'ta-in' || langPref === 'tamil';
 
         console.log('========================================');
-        console.log(`[Voice] Processing call for ${phone}`);
+        console.log(`[Voice] 📞 INCOMING CALL FOR: ${phone}`);
         console.log(`[Voice] Call Key: ${callKey}`);
-        console.log(`[Voice] Language Preference: ${langPref}`);
-        console.log(`[Voice] Is Tamil: ${langPref === 'ta' || langPref === 'ta-in' || langPref === 'tamil'}`);
+        console.log(`[Voice] Raw Language Param: "${rawLang}"`);
+        console.log(`[Voice] Normalized Language: "${langPref}"`);
+        console.log(`[Voice] ⭐ IS TAMIL: ${isTamil ? 'YES ✓' : 'NO ✗'}`);
         console.log(`[Voice] Message Length: ${messageToSay.length} characters`);
-        console.log(`[Voice] Message to Say: "${messageToSay}"`);
-        console.log(`[Voice] Full Call Data:`, callData);
+        console.log(`[Voice] Message: "${messageToSay.substring(0, 100)}${messageToSay.length > 100 ? '...' : ''}"`);
+        console.log(`[Voice] Call Data:`, JSON.stringify(callData, null, 2));
         console.log('========================================');
 
         // Try to use OpenAI audio if available, otherwise fallback to text-to-speech
@@ -375,17 +385,25 @@ exports.handleVoiceWebhook = async (req, res) => {
         console.log(`[Voice] Audio URL: ${audioUrl || 'NONE - Will use Twilio fallback'}`);
 
         if (audioUrl) {
-            console.log(`[Voice] ✓ Using OpenAI audio: ${audioUrl}`);
+            console.log(`[Voice] ✓ Using pre-generated audio: ${audioUrl}`);
+            if (isTamil) {
+                console.log(`[Voice] 🎤 Playing TAMIL audio from Google TTS`);
+            } else {
+                console.log(`[Voice] 🎤 Playing ENGLISH audio`);
+            }
             response.play(audioUrl);
         } else {
-            console.warn(`[Voice] ✗ No OpenAI audio available - using Twilio TTS`);
-            console.warn(`[Voice] ⚠ WARNING: Twilio does not support Tamil TTS well!`);
-            console.warn(`[Voice] ⚠ Language: ${langPref}`);
+            console.warn(`[Voice] ✗ No pre-generated audio available - using Twilio TTS fallback`);
+            console.warn(`[Voice] ⚠ WARNING: This should not happen for production calls!`);
             
-            // For Tamil, we MUST have OpenAI audio
-            if (langPref === 'ta' || langPref === 'ta-in' || langPref === 'tamil') {
-                console.error('[Voice] ✗ CRITICAL: Tamil selected but OpenAI audio not available!');
-                console.error('[Voice] ✗ Check if audio generation succeeded in triggerCall');
+            // For Tamil, we MUST have pre-generated audio
+            if (isTamil) {
+                console.error('[Voice] ✗ CRITICAL: Tamil selected but audio not available!');
+                console.error('[Voice] ✗ Possible causes:');
+                console.error('[Voice]    1. Audio generation failed during triggerCall');
+                console.error('[Voice]    2. Call connected before audio was generated');
+                console.error('[Voice]    3. Audio cache expired');
+                console.error('[Voice] ⚠ Using Hindi voice as emergency fallback (not ideal)');
                 // Use Polly Aditi voice as last resort (Hindi voice, not ideal for Tamil)
                 response.say({ voice: 'Polly.Aditi', language: 'hi-IN' }, messageToSay);
             } else {
@@ -404,7 +422,8 @@ exports.handleVoiceWebhook = async (req, res) => {
             timeout: 10
         });
 
-        if (langPref === 'ta' || langPref === 'ta-in' || langPref === 'tamil') {
+        if (isTamil) {
+            console.log('[Voice] 🎤 Generating TAMIL confirmation prompt...');
             // Generate Tamil audio for the confirmation prompt
             const tamilPrompt = "தயவுசெய்து ஒன்று அழுத்தி வருகையை உறுதிப்படுத்தவும். நீங்கள் வர முடியாவிட்டால் இரண்டு அழுத்தவும்.";
             
@@ -439,11 +458,12 @@ exports.handleVoiceWebhook = async (req, res) => {
         }
 
         // Fallback if no input
-        const goodbyeMessage = (langPref === 'ta' || langPref === 'ta-in' || langPref === 'tamil') 
+        const goodbyeMessage = isTamil
             ? "உங்கள் பதிலைப் பெறவில்லை. நன்றி." 
             : "We did not receive your response. Goodbye.";
             
-        if (langPref === 'ta' || langPref === 'ta-in' || langPref === 'tamil') {
+        if (isTamil) {
+            console.log('[Voice] 🎤 Generating TAMIL goodbye message...');
             try {
                 console.log('[Voice] Generating Tamil audio for goodbye message...');
                 
@@ -475,6 +495,7 @@ exports.handleVoiceWebhook = async (req, res) => {
 
         const twimlString = response.toString();
         console.log("[Voice] Generated TwiML:", twimlString);
+        console.log(`[Voice] ✅ TwiML sent - Language: ${isTamil ? 'TAMIL' : 'ENGLISH'}`);
 
         res.type('text/xml');
         res.send(twimlString);

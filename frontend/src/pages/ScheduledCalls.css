@@ -10,8 +10,8 @@
 
 .scheduled-header h1 {
     font-size: 2.5rem;
-    font-weight: 900;
-    color: #6d28d9;
+    font-weight: 700;
+    color: var(--text-primary);
     margin-bottom: 1.5rem;
     display: flex;
     align-items: center;
@@ -26,27 +26,25 @@
 
 .filter-buttons button {
     padding: 0.75rem 1.5rem;
-    border: 2px solid #ddd6fe;
+    border: 1px solid var(--border-color);
     background: white;
-    border-radius: 12px;
-    font-weight: 700;
+    border-radius: var(--radius-md);
+    font-weight: 600;
     font-size: 0.9rem;
     cursor: pointer;
-    transition: all 0.3s ease;
-    color: #6d28d9;
+    transition: all 0.2s ease;
+    color: var(--text-primary);
 }
 
 .filter-buttons button:hover {
-    background: #faf5ff;
-    border-color: #8b5cf6;
-    transform: translateY(-2px);
+    background: var(--bg-secondary);
+    border-color: var(--primary);
 }
 
 .filter-buttons button.active {
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    background: var(--primary);
     color: white;
-    border-color: #8b5cf6;
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    border-color: var(--primary);
 }
 
 .stats-row {
@@ -57,20 +55,20 @@
 }
 
 .stat-card {
-    background: linear-gradient(145deg, #ffffff 0%, #faf5ff 100%);
-    border-radius: 16px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
     padding: 1.5rem;
     display: flex;
     align-items: center;
     gap: 1.25rem;
-    border: 2px solid #ddd6fe;
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
-    transition: all 0.3s ease;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
 }
 
 .stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.2);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
 .stat-icon {
@@ -80,8 +78,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
-    border-radius: 14px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
 }
 
 .stat-info {
@@ -90,15 +88,15 @@
 
 .stat-value {
     font-size: 2.25rem;
-    font-weight: 900;
-    color: #6d28d9;
+    font-weight: 700;
+    color: var(--text-primary);
     line-height: 1;
 }
 
 .stat-label {
     font-size: 0.9rem;
-    color: #64748b;
-    font-weight: 600;
+    color: var(--text-secondary);
+    font-weight: 500;
     margin-top: 0.25rem;
 }
 
@@ -112,9 +110,9 @@
 .no-calls {
     text-align: center;
     padding: 4rem 2rem;
-    background: linear-gradient(145deg, #ffffff 0%, #f0f9ff 100%);
-    border-radius: 20px;
-    border: 3px dashed #bae6fd;
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    border: 2px dashed var(--border-color);
 }
 
 .no-calls-icon {
@@ -123,13 +121,13 @@
 }
 
 .no-calls h3 {
-    color: #0e7490;
+    color: var(--text-primary);
     font-size: 1.5rem;
     margin-bottom: 0.5rem;
 }
 
 .no-calls p {
-    color: #64748b;
+    color: var(--text-secondary);
     font-size: 1rem;
 }
 
@@ -140,46 +138,34 @@
 }
 
 .call-card {
-    background: linear-gradient(145deg, #ffffff 0%, #f0fdfa 100%);
-    border-radius: 20px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
     padding: 1.75rem;
-    border: 3px solid #99f6e4;
-    box-shadow: 0 6px 20px rgba(20, 184, 166, 0.12);
-    transition: all 0.4s ease;
-    position: relative;
-    overflow: hidden;
+    border: 1px solid var(--border-color);
+    border-top: 4px solid var(--primary);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
 }
 
-.call-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 5px;
-    background: linear-gradient(90deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+.call-card.status-pending {
+    border-top-color: #FFC107;
 }
 
-.call-card.status-pending::before {
-    background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%);
+.call-card.status-completed {
+    border-top-color: var(--secondary);
 }
 
-.call-card.status-completed::before {
-    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+.call-card.status-failed {
+    border-top-color: var(--accent);
 }
 
-.call-card.status-failed::before {
-    background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
-}
-
-.call-card.status-cancelled::before {
-    background: linear-gradient(90deg, #64748b 0%, #475569 100%);
+.call-card.status-cancelled {
+    border-top-color: #999;
 }
 
 .call-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 12px 36px rgba(139, 92, 246, 0.2);
-    border-color: #c4b5fd;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
 .call-header {
@@ -188,7 +174,7 @@
     align-items: flex-start;
     margin-bottom: 1.25rem;
     padding-bottom: 1rem;
-    border-bottom: 2px solid #e0f2fe;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .patient-info {
@@ -201,68 +187,67 @@
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    background: var(--primary);
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-size: 1.5rem;
-    font-weight: 900;
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    font-weight: 700;
 }
 
 .patient-info h3 {
     margin: 0;
     font-size: 1.25rem;
-    color: #6d28d9;
-    font-weight: 800;
+    color: var(--text-primary);
+    font-weight: 700;
 }
 
 .patient-info .phone {
     margin: 0.25rem 0 0 0;
     font-size: 0.9rem;
-    color: #64748b;
-    font-weight: 600;
+    color: var(--text-secondary);
+    font-weight: 500;
 }
 
 .status-badge {
     padding: 0.5rem 1rem;
-    border-radius: 20px;
+    border-radius: var(--radius-md);
     font-size: 0.85rem;
-    font-weight: 700;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
 }
 
 .badge-pending {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    color: #92400e;
-    border: 2px solid #fbbf24;
+    background: #FFF9C4;
+    color: #F57F17;
+    border: 1px solid #FFC107;
 }
 
 .badge-progress {
-    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-    color: #1e3a8a;
-    border: 2px solid #3b82f6;
+    background: #E3F2FD;
+    color: #1976D2;
+    border: 1px solid #2196F3;
 }
 
 .badge-executed, .badge-completed {
-    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-    color: #065f46;
-    border: 2px solid #10b981;
+    background: #E8F5E9;
+    color: #2E7D32;
+    border: 1px solid var(--secondary);
 }
 
 .badge-failed {
-    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-    color: #991b1b;
-    border: 2px solid #ef4444;
+    background: #FFEBEE;
+    color: #C62828;
+    border: 1px solid var(--accent);
 }
 
 .badge-cancelled {
-    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
-    color: #1e293b;
-    border: 2px solid #64748b;
+    background: #F5F5F5;
+    color: #616161;
+    border: 1px solid #999;
 }
 
 .call-details {
@@ -277,29 +262,29 @@
 }
 
 .detail-row .label {
-    font-weight: 700;
-    color: #475569;
+    font-weight: 600;
+    color: var(--text-secondary);
     font-size: 0.9rem;
 }
 
 .detail-row .value {
-    font-weight: 600;
-    color: #0f766e;
+    font-weight: 500;
+    color: var(--text-primary);
     font-size: 0.9rem;
 }
 
 .time-until {
-    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
-    border-radius: 8px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
     padding: 0.75rem 1rem;
     margin: 0.75rem 0;
-    border: none;
+    border: 1px solid var(--border-color);
 }
 
 .time-until .countdown {
     font-size: 1.1rem;
-    font-weight: 900;
-    color: #6d28d9;
+    font-weight: 700;
+    color: var(--primary);
     width: 100%;
     text-align: center;
     display: block;

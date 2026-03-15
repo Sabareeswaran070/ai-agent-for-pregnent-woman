@@ -466,6 +466,342 @@ function analyzeWithKeywords(text) {
     };
 }
 
+/**
+ * AUTO-DETECT LANGUAGE from text (Tamil vs English)
+ * Uses multiple detection methods for accuracy
+ * @param {string} text - Text to analyze
+ * @returns {Promise<Object>} - { language: 'ta' | 'en', confidence: 0-1, method: string }
+ */
+async function detectLanguage(text) {
+    if (!text || text.trim().length === 0) {
+        return { language: 'en', confidence: 0, method: 'default' };
+    }
+
+    const cleanText = text.trim();
+    
+    // Method 1: Unicode range detection (FAST & FREE)
+    const tamilUnicodeRegex = /[\u0B80-\u0BFF]/g;
+    const tamilChars = (cleanText.match(tamilUnicodeRegex) || []).length;
+    const totalChars = cleanText.replace(/\s+/g, '').length;
+    const tamilPercentage = totalChars > 0 ? tamilChars / totalChars : 0;
+    
+    console.log('[Language Detection] ========================================')
+    console.log(`[Language Detection] Text: "${cleanText.substring(0, 100)}..."`);
+    console.log(`[Language Detection] Tamil chars: ${tamilChars}/${totalChars} (${(tamilPercentage * 100).toFixed(1)}%)`);
+    
+    // High confidence if >30% Tamil characters
+    if (tamilPercentage > 0.3) {
+        console.log('[Language Detection] ✓ Detected: TAMIL (Unicode method)');
+        console.log('[Language Detection] ========================================');
+        return { 
+            language: 'ta', 
+            confidence: Math.min(tamilPercentage * 2, 1), // Scale 0.3-0.5 to 0.6-1.0
+            method: 'unicode' 
+        };
+    }
+    
+    // Method 2: Common Tamil words detection (for transliterated text)
+    const tamilCommonWords = [
+        'வணக்கம்', 'நன்றி', 'ஆம்', 'இல்லை', 'சரி', 'தேதி', 
+        'மருத்துவ', 'பரிசோதனை', 'நேரம்', 'இடம்', 'பெயர்'
+    ];
+    const hasTamilWords = tamilCommonWords.some(word => cleanText.includes(word));
+    
+    if (hasTamilWords) {
+        console.log('[Language Detection] ✓ Detected: TAMIL (keyword method)');
+        console.log('[Language Detection] ========================================');
+        return { 
+            language: 'ta', 
+            confidence: 0.9, 
+            method: 'keywords' 
+        };
+    }
+    
+    // Method 3: OpenAI language detection (ACCURATE but costs API credits)
+    if (process.env.OPENAI_API_KEY && cleanText.length > 20) {
+        try {
+            console.log('[Language Detection] Using OpenAI for advanced detection...');
+            const completion = await openai.chat.completions.create({
+                model: "gpt-3.5-turbo",
+                messages: [
+                    {
+                        role: "system",
+                        content: "Detect the language of the text. Reply ONLY with 'TAMIL' or 'ENGLISH'."
+                    },
+                    {
+                        role: "user",
+                        content: cleanText
+                    }
+                ],
+                max_tokens: 10,
+                temperature: 0
+            });
+            
+            const aiResult = completion.choices[0].message.content.trim().toUpperCase();
+            const detectedLang = aiResult.includes('TAMIL') ? 'ta' : 'en';
+            
+            console.log(`[Language Detection] ✓ OpenAI detected: ${detectedLang === 'ta' ? 'TAMIL' : 'ENGLISH'}`);
+            console.log('[Language Detection] ========================================');
+            
+            return { 
+                language: detectedLang, 
+                confidence: 0.95, 
+                method: 'openai' 
+            };
+        } catch (error) {
+            console.warn('[Language Detection] OpenAI detection failed:', error.message);
+        }
+    }
+    
+    // Default: English (if no Tamil indicators found)
+    console.log('[Language Detection] ✓ Default: ENGLISH (no Tamil indicators)');
+    console.log('[Language Detection] ========================================');
+    return { 
+        language: 'en', 
+        confidence: 0.7, 
+        method: 'default' 
+    };
+}
+
+/**
+ * ENHANCED: Transcribe with automatic language detection
+ * Detects Tamil vs English and uses appropriate Whisper language hint
+ * @param {string} recordingUrl - URL of the Twilio recording
+ * @returns {Promise<Object>} - { text: string, language: string, confidence: number }
+ */
+async function transcribeAudioWithLanguageDetection(recordingUrl) {
+    try {
+        console.log('[Transcription] Downloading audio from:', recordingUrl);
+
+        const audioUrl = recordingUrl + '.mp3';
+        let response;
+        let retries = 3;
+        
+        for (let i = 0; i < retries; i++) {
+            try {
+                response = await axios({
+                    method: 'get',
+                    url: audioUrl,
+                    responseType: 'stream',
+                    auth: {
+                        username: process.env.TWILIO_ACCOUNT_SID,
+                        password: process.env.TWILIO_AUTH_TOKEN
+                    }
+                });
+                console.log('[Transcription] Audio downloaded successfully');
+                break;
+            } catch (err) {
+                if (err.response?.status === 404 && i < retries - 1) {
+                    console.log(`[Transcription] Recording not ready, retrying in ${(i + 1) * 2}s...`);
+                    await new Promise(resolve => setTimeout(resolve, (i + 1) * 2000));
+                } else {
+                    throw err;
+                }
+            }
+        }
+        
+        if (!response) {
+            throw new Error('Failed to download recording after retries');
+        }
+
+        const tempFilePath = path.join(os.tmpdir(), `recording_${Date.now()}.wav`);
+        const writer = fs.createWriteStream(tempFilePath);
+        response.data.pipe(writer);
+
+        await new Promise((resolve, reject) => {
+            writer.on('finish', resolve);
+            writer.on('error', reject);
+        });
+
+        console.log('[Transcription] Audio saved to:', tempFilePath);
+
+        // STEP 1: First transcription to detect language
+        let initialTranscription;
+        try {
+            console.log('[Transcription] Step 1: Initial transcription for language detection...');
+            initialTranscription = await openai.audio.transcriptions.create({
+                file: fs.createReadStream(tempFilePath),
+                model: "whisper-1",
+            });
+            console.log('[Transcription] Initial text:', initialTranscription.text);
+        } catch (apiError) {
+            console.error('[Transcription] Failed:', apiError.message);
+            fs.unlinkSync(tempFilePath);
+            return { text: 'Unable to transcribe response', language: 'unknown', confidence: 0 };
+        }
+
+        // STEP 2: Detect language from transcription
+        const langDetection = await detectLanguage(initialTranscription.text);
+        console.log(`[Transcription] Step 2: Language detected as ${langDetection.language.toUpperCase()} (${(langDetection.confidence * 100).toFixed(0)}% confidence)`);
+
+        // STEP 3: Re-transcribe with language hint for better accuracy (Tamil only)
+        let finalText = initialTranscription.text;
+        if (langDetection.language === 'ta' && langDetection.confidence > 0.5) {
+            try {
+                console.log('[Transcription] Step 3: Re-transcribing with Tamil language hint...');
+                const tamilTranscription = await openai.audio.transcriptions.create({
+                    file: fs.createReadStream(tempFilePath),
+                    model: "whisper-1",
+                    language: "ta" // Tamil language hint for better accuracy
+                });
+                finalText = tamilTranscription.text;
+                console.log('[Transcription] ✓ Tamil-optimized text:', finalText);
+            } catch (error) {
+                console.warn('[Transcription] Tamil re-transcription failed, using initial result');
+            }
+        }
+
+        // Clean up temp file
+        fs.unlinkSync(tempFilePath);
+
+        return {
+            text: finalText || 'Unable to transcribe response',
+            language: langDetection.language,
+            confidence: langDetection.confidence
+        };
+
+    } catch (error) {
+        console.error('[Transcription] Error:', error.message);
+        return { text: 'Unable to transcribe response', language: 'unknown', confidence: 0 };
+    }
+}
+
+/**
+ * ENHANCED: Generate AI response with language-aware analysis
+ * @param {string} recordingUrl - URL of the recording
+ * @returns {Promise<Object>} - Response with language info
+ */
+async function generateAIResponseWithLanguageDetection(recordingUrl) {
+    try {
+        // Transcribe with language detection
+        const transcriptionResult = await transcribeAudioWithLanguageDetection(recordingUrl);
+
+        if (!transcriptionResult.text || transcriptionResult.text === 'Unable to transcribe response') {
+            console.warn('[AI Analysis] Transcription failed');
+            return {
+                fullResponse: "Could not understand response (transcription failed)",
+                transcription: "Unable to transcribe",
+                confirmationStatus: "unclear",
+                detectedLanguage: "unknown",
+                confidence: 0
+            };
+        }
+
+        console.log('[AI Analysis] Analyzing:', transcriptionResult.text);
+        console.log('[AI Analysis] Language:', transcriptionResult.language);
+
+        // Language-specific analysis prompts
+        const isTamil = transcriptionResult.language === 'ta';
+        const systemPrompt = isTamil
+            ? "You are analyzing a Tamil patient's response to an appointment reminder. Reply ONLY with: CONFIRMED, REJECTED, or UNCLEAR."
+            : "You are analyzing a patient's response to an appointment reminder. Reply ONLY with: CONFIRMED, REJECTED, or UNCLEAR.";
+
+        // Analyze with GPT
+        let completion;
+        let retryCount = 0;
+        const maxRetries = 2;
+
+        while (retryCount < maxRetries) {
+            try {
+                completion = await openai.chat.completions.create({
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        {
+                            role: "user",
+                            content: `Patient said: "${transcriptionResult.text}". Did they confirm or reject the appointment?`
+                        }
+                    ],
+                    model: "gpt-3.5-turbo",
+                    max_tokens: 10
+                });
+                break;
+            } catch (apiError) {
+                retryCount++;
+                console.error(`[AI Analysis] Attempt ${retryCount} failed:`, apiError.message);
+                
+                if (retryCount >= maxRetries) {
+                    console.warn('[AI Analysis] Using keyword fallback');
+                    return analyzeWithKeywordsMultilingual(
+                        transcriptionResult.text, 
+                        transcriptionResult.language
+                    );
+                }
+                await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+            }
+        }
+
+        const aiStatus = completion.choices[0].message.content.trim().toUpperCase();
+        let confirmationStatus = 'unclear';
+        
+        if (aiStatus.includes('CONFIRMED')) confirmationStatus = 'confirmed';
+        else if (aiStatus.includes('REJECTED')) confirmationStatus = 'rejected';
+
+        console.log('[AI Analysis] Result:', confirmationStatus);
+
+        return {
+            fullResponse: transcriptionResult.text,
+            transcription: transcriptionResult.text,
+            confirmationStatus: confirmationStatus,
+            detectedLanguage: transcriptionResult.language,
+            languageConfidence: transcriptionResult.confidence
+        };
+
+    } catch (error) {
+        console.error('[AI Analysis] Error:', error.message);
+        return {
+            fullResponse: 'Error processing response',
+            transcription: 'Error',
+            confirmationStatus: 'unclear',
+            detectedLanguage: 'unknown',
+            confidence: 0
+        };
+    }
+}
+
+/**
+ * ENHANCED: Multilingual keyword analysis (Tamil + English)
+ * @param {string} text - Transcribed text
+ * @param {string} language - Detected language ('ta' or 'en')
+ * @returns {Object} - Analysis result
+ */
+function analyzeWithKeywordsMultilingual(text, language = 'en') {
+    const lowerText = text.toLowerCase();
+    
+    // English keywords
+    const confirmKeywordsEN = ['yes', 'yeah', 'sure', 'okay', 'ok', 'will attend', 'confirm', 'definitely', 'absolutely'];
+    const rejectKeywordsEN = ['no', 'not', 'cannot', 'can\'t', 'won\'t', 'unable', 'busy', 'unavailable'];
+    
+    // Tamil keywords (both Tamil script and transliteration)
+    const confirmKeywordsTamil = ['ஆம்', 'சரி', 'வருகிறேன்', 'வரேன்', 'okay', 'ok'];
+    const rejectKeywordsTamil = ['இல்லை', 'வர முடியாது', 'முடியாது', 'no', 'இல்ல'];
+    
+    // Combine based on detected language
+    let confirmKeywords = confirmKeywordsEN;
+    let rejectKeywords = rejectKeywordsEN;
+    
+    if (language === 'ta') {
+        confirmKeywords = [...confirmKeywordsEN, ...confirmKeywordsTamil];
+        rejectKeywords = [...rejectKeywordsEN, ...rejectKeywordsTamil];
+    }
+    
+    const hasConfirm = confirmKeywords.some(keyword => lowerText.includes(keyword));
+    const hasReject = rejectKeywords.some(keyword => lowerText.includes(keyword));
+    
+    let status = 'unclear';
+    if (hasConfirm && !hasReject) status = 'confirmed';
+    else if (hasReject && !hasConfirm) status = 'rejected';
+    
+    console.log(`[Keyword Analysis] Language: ${language}, Status: ${status}`);
+    
+    return {
+        fullResponse: text + ' (keyword analysis)',
+        transcription: text,
+        confirmationStatus: status,
+        detectedLanguage: language,
+        languageConfidence: 0.8
+    };
+}
+
 
 /**
  * Generate personalized reminder message
@@ -559,5 +895,11 @@ module.exports = {
     getReminderAudioEntry,
     deleteReminderAudioEntry,
     createFreeTamilSpeech,
-    createFreeEnglishSpeech
+    createFreeEnglishSpeech,
+    
+    // Language auto-detection functions
+    detectLanguage,
+    transcribeAudioWithLanguageDetection,
+    generateAIResponseWithLanguageDetection,
+    analyzeWithKeywordsMultilingual
 };

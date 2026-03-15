@@ -43,8 +43,8 @@
     font-size: 0.85rem;
     color: var(--text-muted);
     padding: 0.25rem 0.75rem;
-    background: #e3f2fd;
-    border-radius: 12px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
 }
 
 .nav-links {

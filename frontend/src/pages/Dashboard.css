@@ -11,25 +11,24 @@
     flex-wrap: wrap;
     gap: 1.5rem;
     padding: 2rem;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
-    border-radius: 16px;
-    border: 2px solid #e3f2fd;
-    box-shadow: 0 4px 12px rgba(66, 133, 244, 0.08);
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
 }
 
 .page-title {
     font-size: 2.25rem;
-    font-weight: 800;
-    color: #1565c0;
+    font-weight: 700;
+    color: var(--primary);
     margin-bottom: 0.5rem;
-    letter-spacing: -0.5px;
     line-height: 1.2;
 }
 
 .page-subtitle {
-    color: #546e7a;
+    color: var(--text-secondary);
     font-size: 1.05rem;
-    font-weight: 500;
+    font-weight: 400;
     line-height: 1.4;
 }
 
@@ -42,33 +41,20 @@
 }
 
 .stat-card {
-    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
-    border-radius: 14px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
     padding: 1.75rem;
     display: flex;
     align-items: center;
     gap: 1.25rem;
-    border: 2px solid #e3f2fd;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 8px rgba(66, 133, 244, 0.06);
-    position: relative;
-    overflow: hidden;
-}
-
-.stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #4285f4 0%, #1976d2 50%, #7b1fa2 100%);
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
 }
 
 .stat-card:hover {
-    box-shadow: 0 8px 24px rgba(66, 133, 244, 0.15);
-    border-color: #90caf9;
-    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
 }
 
 .stat-icon {
@@ -78,27 +64,23 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #4285f4 0%, #1976d2 100%);
+    background: var(--primary);
     color: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+    border-radius: var(--radius-md);
     flex-shrink: 0;
 }
 
 .stat-content h3 {
     font-size: 2rem;
-    font-weight: 800;
-    color: #1a237e;
+    font-weight: 700;
+    color: var(--text-primary);
     margin-bottom: 0.35rem;
-    letter-spacing: -0.5px;
 }
 
 .stat-content p {
-    color: #546e7a;
+    color: var(--text-secondary);
     font-size: 0.95rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-weight: 500;
 }
 
 /* Patients Section */
@@ -108,30 +90,16 @@
 
 .section-title {
     font-size: 1.75rem;
-    font-weight: 900;
+    font-weight: 700;
     margin-bottom: 2rem;
-    color: #6d28d9;
+    color: var(--text-primary);
     padding: 1.5rem 2rem;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%);
-    border-radius: 18px;
-    border-left: 6px solid #8b5cf6;
-    border: 3px solid #ddd6fe;
-    border-left: 6px solid #8b5cf6;
-    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    letter-spacing: -0.5px;
-    position: relative;
-    overflow: hidden;
-}
-
-.section-title::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -10%;
-    width: 200px;
-    height: 200px;
-    background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
-    border-radius: 50%;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--primary);
+    border-top: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .patients-grid {
@@ -143,11 +111,10 @@
 
 .patient-card {
     position: relative;
-    overflow: hidden;
-    background: linear-gradient(145deg, #ffffff 0%, #f0f9ff 50%, #e0f2fe 100%);
-    border-radius: 16px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
     padding: 1.75rem 2rem;
-    border: 3px solid transparent;
+    border: 1px solid var(--border-color);
     background-clip: padding-box;
     box-shadow: 0 8px 24px rgba(6, 182, 212, 0.15), 
                 0 4px 12px rgba(59, 130, 246, 0.1),
@@ -190,11 +157,9 @@
 }
 
 .patient-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 16px 48px rgba(6, 182, 212, 0.25), 
-                0 8px 24px rgba(59, 130, 246, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 1);
-    border-color: #22d3ee;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary);
 }
 
 .patient-header {
@@ -202,63 +167,22 @@
     align-items: center;
     gap: 1.25rem;
     margin-bottom: 1.5rem;
-    padding: 0;
     padding-bottom: 1.25rem;
-    background: transparent;
-    border-radius: 0;
-    border-bottom: 3px solid #bae6fd;
-    box-shadow: none;
-    position: relative;
-    overflow: visible;
-}
-
-.patient-header::before {
-    display: none;
+    border-bottom: 2px solid var(--border-color);
 }
 
 .patient-avatar {
     width: 64px;
     height: 64px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
+    background: var(--primary);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.75rem;
-    font-weight: 900;
+    font-weight: 700;
     color: white;
-    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.5), 
-                0 0 0 4px rgba(255, 255, 255, 0.9),
-                0 0 0 6px rgba(139, 92, 246, 0.2),
-                inset 0 -3px 6px rgba(0, 0, 0, 0.15);
     flex-shrink: 0;
-    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    border: 4px solid white;
-    position: relative;
-}
-
-.patient-avatar::before {
-    content: '';
-    position: absolute;
-    inset: -8px;
-    border-radius: 50%;
-    background: conic-gradient(from 0deg, #8b5cf6, #7c3aed, #6d28d9, #8b5cf6);
-    opacity: 0;
-    transition: opacity 0.5s ease;
-    z-index: -1;
-    animation: rotate 3s linear infinite;
-}
-
-.patient-card:hover .patient-avatar {
-    transform: scale(1.2) rotate(10deg);
-    box-shadow: 0 12px 36px rgba(139, 92, 246, 0.6), 
-                0 0 0 4px rgba(255, 255, 255, 1),
-                0 0 0 8px rgba(139, 92, 246, 0.3),
-                inset 0 -3px 6px rgba(0, 0, 0, 0.2);
-}
-
-.patient-card:hover .patient-avatar::before {
-    opacity: 0.3;
 }
 
 .patient-avatar.large {
@@ -274,36 +198,29 @@
 
 .patient-info h4 {
     font-size: 1.25rem;
-    font-weight: 900;
-    color: #6d28d9;
+    font-weight: 700;
+    color: var(--text-primary);
     margin-bottom: 0.5rem;
     line-height: 1.3;
-    letter-spacing: -0.5px;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
 .patient-phone,
 .patient-email {
     font-size: 0.9rem;
-    color: #475569;
+    color: var(--text-secondary);
     margin-bottom: 0.35rem;
     display: flex;
     align-items: center;
     gap: 0.6rem;
     padding: 0.35rem 0;
-    font-weight: 600;
 }
 
 .patient-phone::before {
     content: '📱';
-    font-size: 1.1rem;
-    filter: grayscale(0) drop-shadow(0 2px 4px rgba(139, 92, 246, 0.3));
 }
 
 .patient-email::before {
     content: '✉️';
-    font-size: 1.1rem;
-    filter: grayscale(0) drop-shadow(0 2px 4px rgba(139, 92, 246, 0.3));
 }
 
 .patient-due-date {
@@ -312,116 +229,54 @@
     align-items: center;
     gap: 1rem;
     padding: 1.25rem 1.75rem;
-    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 50%, #c4b5fd 100%);
-    border-radius: 16px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
     margin-bottom: 1.5rem;
-    border: 3px solid #c4b5fd;
-    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.2), 
-                inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    position: relative;
-    overflow: hidden;
-}
-
-.patient-due-date::before {
-    content: '📅';
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 2.5rem;
-    opacity: 0.12;
-    filter: drop-shadow(0 2px 4px rgba(139, 92, 246, 0.3));
-}
-
-.patient-due-date::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent 0%, #8b5cf6 50%, transparent 100%);
+    border: 1px solid var(--border-color);
 }
 
 .patient-due-date .label {
-    color: #5b21b6;
-    font-weight: 900;
+    color: var(--text-primary);
+    font-weight: 600;
     font-size: 0.85rem;
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
 }
 
 .patient-due-date .label::before {
     content: '👶';
-    font-size: 1.3rem;
-    filter: drop-shadow(0 2px 4px rgba(139, 92, 246, 0.4));
 }
 
 .patient-due-date .value {
-    color: #6d28d9;
-    font-weight: 900;
+    color: var(--text-primary);
+    font-weight: 600;
     font-size: 1.15rem;
     text-align: right;
-    letter-spacing: 0.3px;
-    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
 }
 
 .patient-tests {
     margin-bottom: 1.5rem;
     padding: 1.75rem 1.5rem;
-    background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 50%, #faf5ff 100%);
-    border-radius: 16px;
-    border: 2px solid #bae6fd;
-    box-shadow: 0 4px 20px rgba(6, 182, 212, 0.08), 
-                0 2px 8px rgba(6, 182, 212, 0.04),
-                inset 0 1px 0 rgba(255, 255, 255, 1);
-    max-width: 100%;
-    box-sizing: border-box;
-    overflow: visible;
-    position: relative;
-    transition: all 0.3s ease;
-}
-
-.patient-tests::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%);
-    border-radius: 18px 18px 0 0;
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
 }
 
 .patient-tests h5 {
     font-size: 1.1rem;
-    color: #0d47a1;
+    color: var(--text-primary);
     margin: 0 0 1.5rem 0;
-    font-weight: 900;
+    font-weight: 700;
     display: flex;
     align-items: center;
     gap: 0.75rem;
     padding: 0 0 1.1rem 0;
-    border-bottom: 3px solid #2196f3;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    line-height: 1.4;
+    border-bottom: 2px solid var(--primary);
 }
 
 .patient-tests h5::before {
     content: '🧪';
-    font-size: 1.3rem;
-    filter: grayscale(0) drop-shadow(0 2px 6px rgba(6, 182, 212, 0.4));
-    animation: wobble 2s ease-in-out infinite;
-}
-
-@keyframes wobble {
-    0%, 100% { transform: rotate(0deg); }
-    25% { transform: rotate(-5deg); }
-    75% { transform: rotate(5deg); }
 }
 
 .patient-tests ul {
@@ -665,7 +520,7 @@
     height: 36px;
     padding: 0 0.8rem;
     font-size: 0.73rem;
-    font-weight: 800;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -688,7 +543,7 @@
     height: 44px;
     padding: 0 1.1rem;
     font-size: 0.85rem;
-    font-weight: 900;
+    font-weight: 700;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -705,27 +560,23 @@
 }
 
 .patient-tests .test-actions .btn-primary {
-    background: linear-gradient(135deg, #4285f4 0%, #1976d2 100%);
+    background: var(--primary);
     color: white;
-    box-shadow: 0 3px 8px rgba(66, 133, 244, 0.4);
 }
 
 .patient-tests .test-actions .btn-primary:hover {
-    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 6px 16px rgba(66, 133, 244, 0.5);
+    background: var(--primary-dark);
+    transform: translateY(-1px);
 }
 
 .patient-tests .test-actions .btn-danger {
-    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+    background: var(--accent);
     color: white;
-    box-shadow: 0 3px 8px rgba(244, 67, 54, 0.4);
 }
 
 .patient-tests .test-actions .btn-danger:hover {
-    background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 6px 16px rgba(244, 67, 54, 0.5);
+    background: #D32F2F;
+    transform: translateY(-1px);
 }
 
 .patient-tests .test-actions .btn-primary:active,
@@ -741,56 +592,49 @@
     height: 44px;
     padding: 0.6rem 0.85rem;
     font-size: 0.85rem;
-    border: 2px solid #64b5f6;
-    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
     background: white;
-    color: #0d47a1;
-    font-weight: 800;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--text-primary);
+    font-weight: 600;
+    transition: all 0.2s ease;
     margin: 0;
     box-sizing: border-box;
-    box-shadow: 0 3px 8px rgba(33, 150, 243, 0.25);
     cursor: pointer;
 }
 
 .patient-tests .date-input:focus {
-    border-color: #4285f4;
-    background: #fafbff;
-    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.15);
+    border-color: var(--primary);
+    background: var(--bg-primary);
     outline: none;
 }
 
 .patient-tests .date-input:hover {
-    border-color: #64b5f6;
-    background: #fafbff;
+    border-color: var(--primary);
 }
 
 .patient-tests .btn-update,
 .patient-tests .btn-update.btn-primary {
-    background: linear-gradient(135deg, #4285f4 0%, #1976d2 100%);
+    background: var(--primary);
     color: white;
-    box-shadow: 0 3px 8px rgba(66, 133, 244, 0.4);
 }
 
 .patient-tests .btn-update:hover,
 .patient-tests .btn-update.btn-primary:hover {
-    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 6px 16px rgba(66, 133, 244, 0.5);
+    background: var(--primary-dark);
+    transform: translateY(-1px);
 }
 
 .patient-tests .btn-delete,
 .patient-tests .btn-delete.btn-danger {
-    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+    background: var(--accent);
     color: white;
-    box-shadow: 0 3px 8px rgba(244, 67, 54, 0.4);
 }
 
 .patient-tests .btn-delete:hover,
 .patient-tests .btn-delete.btn-danger:hover {
-    background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 6px 16px rgba(244, 67, 54, 0.5);
+    background: #D32F2F;
+    transform: translateY(-1px);
 }
 
 .patient-tests .btn-update:active,
@@ -1482,7 +1326,7 @@
 
 .patient-preview-small strong {
     color: #0d47a1;
-    font-weight: 800;
+    font-weight: 600;
 }
 
 .send-options {
